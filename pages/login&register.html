@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng Nhập — COPIGEMGPT.NET</title>
+    <link rel="stylesheet" href="assets/css/variables.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/auth.css">
+</head>
+<body class="theme-pink">
+
+    <a href="../index.html" class="login-logo">COPIGEMGPT<span>.NET</span></a>
+
+    <div class="auth-box">
+
+        <div class="auth-tab-row">
+            <button class="auth-tab active" id="tab-login"    onclick="switchTab('login')">Đăng Nhập</button>
+            <button class="auth-tab"        id="tab-register" onclick="switchTab('register')">Đăng Ký</button>
+        </div>
+
+        <!-- LOGIN -->
+        <div class="auth-form" id="form-login">
+            <div class="auth-field">
+                <label>Tên đăng nhập</label>
+                <input type="text"     id="login-email" placeholder="Username..." autocomplete="username">
+            </div>
+            <div class="auth-field">
+                <label>Mật khẩu</label>
+                <input type="password" id="login-pass"  placeholder="Password..." autocomplete="current-password"
+                       onkeydown="if(event.key==='Enter') doLogin()">
+            </div>
+            <p id="login-error" class="error-text"></p>
+            <button class="btn-submit" onclick="doLogin()">Đăng Nhập</button>
+        </div>
+
+        <!-- REGISTER -->
+        <div class="auth-form hidden" id="form-register">
+            <div class="auth-field">
+                <label>Tên đăng nhập</label>
+                <input type="text"     id="reg-email"  placeholder="Username..." autocomplete="username">
+            </div>
+            <div class="auth-field">
+                <label>Mật khẩu</label>
+                <input type="password" id="reg-pass"   placeholder="Password..." autocomplete="new-password">
+            </div>
+            <div class="auth-field">
+                <label>Xác nhận mật khẩu</label>
+                <input type="password" id="reg-pass2"  placeholder="Nhập lại password..."
+                       onkeydown="if(event.key==='Enter') doRegister()">
+            </div>
+            <p id="reg-error" class="error-text"></p>
+            <button class="btn-submit" onclick="doRegister()">Tạo Tài Khoản</button>
+        </div>
+
+        <div class="auth-footer">
+            <a href="index.html">← Quay về trang chủ</a>
+        </div>
+    </div>
+
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/supabaseClient.js"></script>
+
+    <script>
+        /* ── Redirect nếu đã đăng nhập (chạy sau khi SDK đã load) ── */
+        window.addEventListener('DOMContentLoaded', function() {
+            if (localStorage.getItem('currentUser') && localStorage.getItem('currentUserId')) {
+                location.href = 'index.html';
+            }
+        });
+
+        /* ── Helpers ── */
+        function showErr(id, msg, color) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent   = msg;
+            el.style.color   = color || '#ff4d4d';
+            el.style.display = 'block';
+        }
+        function clearErr(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent   = '';
+            el.style.display = 'none';
+        }
+
+        /* ── Tab switch ── */
+        function switchTab(tab) {
+            document.getElementById('tab-login').classList.toggle('active',    tab === 'login');
+            document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+            document.getElementById('form-login').classList.toggle('hidden',    tab !== 'login');
+            document.getElementById('form-register').classList.toggle('hidden', tab !== 'register');
+            ['login-error', 'reg-error'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) { el.textContent = ''; el.style.display = 'none'; }
+            });
+        }
+
+        /* ── ĐĂNG NHẬP ── */
+        async function doLogin() {
+            const email = document.getElementById('login-email').value.trim();
+            const pass  = document.getElementById('login-pass').value;
+            const btn   = document.querySelector('#form-login .btn-submit');
+            clearErr('login-error');
+
+            if (!email || !pass) {
+                showErr('login-error', 'Vui lòng nhập đầy đủ thông tin.');
+                return;
+            }
+
+            btn.disabled    = true;
+            btn.textContent = 'Đang đăng nhập...';
+            try {
+                await dbLogin(email, pass);
+                location.href = 'index.html';
+            } catch (e) {
+                console.error('[doLogin]', e);
+                showErr('login-error', e.message || 'Sai tài khoản hoặc mật khẩu!');
+                btn.disabled    = false;
+                btn.textContent = 'Đăng Nhập';
+            }
+        }
+
+        /* ── ĐĂNG KÝ ── */
+        async function doRegister() {
+            const email = document.getElementById('reg-email').value.trim();
+            const pass  = document.getElementById('reg-pass').value;
+            const pass2 = document.getElementById('reg-pass2').value;
+            const btn   = document.querySelector('#form-register .btn-submit');
+            clearErr('reg-error');
+
+            if (!email || !pass) { showErr('reg-error', 'Vui lòng nhập đầy đủ thông tin.'); return; }
+            if (pass.length < 6) { showErr('reg-error', 'Mật khẩu tối thiểu 6 ký tự!');    return; }
+            if (pass !== pass2)  { showErr('reg-error', 'Mật khẩu xác nhận không khớp.');   return; }
+
+            btn.disabled    = true;
+            btn.textContent = 'Đang tạo tài khoản...';
+            try {
+                await dbRegister(email, pass);
+                showErr('reg-error', 'Đăng ký thành công! Đang chuyển sang đăng nhập...', '#4fc3f7');
+                setTimeout(() => switchTab('login'), 1200);
+            } catch (e) {
+                console.error('[doRegister]', e);
+                showErr('reg-error',
+                    e.code === '23505'
+                        ? 'Tài khoản này đã tồn tại!'
+                        : (e.message || 'Đăng ký thất bại, thử lại.')
+                );
+            } finally {
+                btn.disabled    = false;
+                btn.textContent = 'Tạo Tài Khoản';
+            }
+        }
+    </script>
+
+</body>
+</html>

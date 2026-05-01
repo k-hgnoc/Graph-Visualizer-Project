@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kruskal's Algorithm Visualizer</title>
+    <link rel="stylesheet" href="../assets/css/variables.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/workspace.css">
+    <style>
+        /* ── Kruskal-specific styles ── */
+        .edge-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--font-mono);
+            font-size: 11px;
+        }
+        .edge-table th {
+            color: var(--text-muted);
+            font-family: var(--font-ui);
+            font-size: 10px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            text-align: left;
+            padding: 4px 6px;
+            border-bottom: 1px solid var(--panel-border);
+        }
+        .edge-table td {
+            padding: 4px 6px;
+            color: var(--text);
+            border-bottom: 1px solid rgba(255,45,107,0.06);
+        }
+        .edge-table tr:last-child td { border-bottom: none; }
+        .edge-table .edge-weight   { color: var(--pink); font-weight: 600; }
+        .edge-table .edge-accepted { color: #4ade80; }
+        .edge-table .edge-rejected { color: #ff6b6b; text-decoration: line-through; opacity: 0.6; }
+        .edge-status-dot {
+            display: inline-block;
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            margin-right: 4px;
+        }
+
+        /* Component color badges */
+        .comp-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            min-height: 28px;
+        }
+        .comp-badge {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 3px;
+            border: 1px solid;
+        }
+
+        .step-controls {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .btn-step {
+            flex: 1;
+            height: 32px;
+            background: transparent;
+            border: 1px solid rgba(255,45,107,0.3);
+            border-radius: 5px;
+            color: var(--pink);
+            font-family: var(--font-ui);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background .15s;
+        }
+        .btn-step:hover:not(:disabled) { background: rgba(255,45,107,0.1); }
+        .btn-step:disabled { opacity: 0.3; cursor: not-allowed; }
+        .btn-compare {
+            width: 100%;
+            height: 32px;
+            background: transparent;
+            border: 1px solid rgba(79,195,247,0.35);
+            border-radius: 5px;
+            color: #4fc3f7;
+            font-family: var(--font-ui);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            margin-top: 6px;
+            transition: background .15s;
+        }
+        .btn-compare:hover { background: rgba(79,195,247,0.08); }
+        .speed-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+        }
+        .speed-row label { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+        .speed-slider { flex: 1; accent-color: var(--pink); height: 3px; cursor: pointer; }
+        .legend-row { display: flex; flex-direction: column; gap: 5px; }
+        .legend-item { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--text-muted); }
+        .legend-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .legend-line { width: 20px; height: 2px; flex-shrink: 0; }
+
+        /* Compare banner */
+        .compare-banner {
+            display: none;
+            background: rgba(79,195,247,0.08);
+            border: 1px solid rgba(79,195,247,0.25);
+            border-radius: 5px;
+            padding: 7px 10px;
+            font-size: 11px;
+            color: #4fc3f7;
+            margin-bottom: 8px;
+        }
+        .compare-banner.visible { display: block; }
+    </style>
+</head>
+<body class="theme-pink">
+
+    <header>
+        <div class="logo">COPIGEMGPT<span>.NET</span></div>
+        <nav id="auth-nav"></nav>
+    </header>
+
+    <div class="page-title-row">
+        <button class="btn-back" onclick="location.href='../index.html'">← QUAY LẠI</button>
+        <h1 class="page-title">Thuật Toán Kruskal</h1>
+    </div>
+
+    <div class="workspace">
+
+        <!-- LEFT PANEL -->
+        <div class="left-panel">
+
+            <!-- CẤU HÌNH -->
+            <div class="panel-section">
+                <div class="section-label">Cấu Hình MST</div>
+
+                <!-- Banner khi mở từ trang Prim -->
+                <div id="compare-banner" class="compare-banner">
+                    ⇄ Đồ thị được tải từ Prim — đang so sánh kết quả MST
+                </div>
+
+                <div class="input-group">
+                    <label>Tốc độ animation</label>
+                    <div class="speed-row">
+                        <label>Chậm</label>
+                        <input type="range" id="speed-slider" class="speed-slider" min="1" max="5" value="3">
+                        <label>Nhanh</label>
+                    </div>
+                </div>
+
+                <button class="btn-run" onclick="runAlgorithm()">Xây Dựng MST</button>
+
+                <div class="step-controls">
+                    <button class="btn-step" id="btn-prev" onclick="stepPrev()" disabled>◀ Trước</button>
+                    <button class="btn-step" id="btn-next" onclick="stepNext()" disabled>Tiếp ▶</button>
+                </div>
+
+                <button class="btn-step" id="btn-reset" onclick="resetVisualize()"
+                        style="width:100%; margin-top:6px; color:var(--text-muted);">
+                    ↺ Reset Màu
+                </button>
+
+                <button class="btn-compare" onclick="compareWithPrim()">
+                    ⇄ So Sánh Với Prim
+                </button>
+            </div>
+
+            <!-- KẾT QUẢ -->
+            <div class="panel-section">
+                <div class="section-label">Kết Quả MST</div>
+
+                <div class="result-block">
+                    <div class="result-label">Tổng Trọng Số</div>
+                    <div style="display:flex; align-items:baseline; gap:8px;">
+                        <p id="mst-total" class="res-value">0</p>
+                        <span style="font-size:11px; color:var(--text-muted);">đơn vị</span>
+                    </div>
+                </div>
+
+                <div class="result-block" style="margin-top:10px;">
+                    <div class="result-label">Cạnh Đã Chọn / Đã Bỏ</div>
+                    <p id="edge-stats" style="font-family:var(--font-mono); font-size:12px; color:var(--text-muted); margin:4px 0 0;">
+                        <span id="accepted-count" style="color:#4ade80;">0</span> chọn ·
+                        <span id="rejected-count" style="color:#ff6b6b;">0</span> bỏ
+                    </p>
+                </div>
+
+                <div class="result-block" style="margin-top:10px;">
+                    <div class="result-label">Thành Phần Liên Thông</div>
+                    <div id="comp-list" class="comp-list" style="margin-top:4px;">
+                        <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-ui);">Chưa chạy</span>
+                    </div>
+                </div>
+
+                <div class="result-block" style="margin-top:10px;">
+                    <div class="result-label">Danh Sách Cạnh (Đã Sort)</div>
+                    <div style="overflow-x:auto; margin-top:4px; max-height:140px; overflow-y:auto;">
+                        <table class="edge-table">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Từ</th>
+                                    <th>Đến</th>
+                                    <th>W</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sorted-edge-list">
+                                <tr><td colspan="4" style="color:var(--text-muted); font-family:var(--font-ui);">Chưa có dữ liệu</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CHÚ THÍCH -->
+            <div class="panel-section" style="flex:1;">
+                <div class="section-label">Chú Thích</div>
+                <div class="legend-row">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:#f59e0b; border:2px solid #d97706;"></div>
+                        Cạnh đang xét
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-line" style="background:#7c3aed;"></div>
+                        Cạnh trong MST
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-line" style="background:#ff6b6b; border-top: 2px dashed #ff6b6b; height:0;"></div>
+                        Cạnh bị loại (tạo chu trình)
+                    </div>
+                    <div class="legend-item" style="margin-top:4px;">
+                        <div class="legend-dot" style="background:#c084fc; border:2px solid #7c3aed;"></div>
+                        Đỉnh đã thuộc MST
+                    </div>
+                    <div class="legend-item">
+                        <span style="font-size:10px; background:rgba(255,45,107,0.15); color:var(--pink); border:1px solid rgba(255,45,107,0.3); border-radius:3px; padding:1px 5px; font-family:var(--font-mono);">màu</span>
+                        &nbsp;= thành phần liên thông
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="right-panel">
+
+            <div class="toolbar">
+                <div class="toolbar-group">
+                    <span class="toolbar-group-label">Vẽ</span>
+                    <button class="tbtn active" id="mode-node" onclick="setMode('node')">
+                        <div class="tbtn-icon"><div class="icon-node"></div></div>
+                        Thêm Đỉnh
+                    </button>
+                    <button class="tbtn" id="mode-edge" onclick="setMode('edge')">
+                        <div class="tbtn-icon"><div class="icon-edge"></div></div>
+                        Thêm Cạnh
+                    </button>
+                </div>
+                <div class="toolbar-group">
+                    <span class="toolbar-group-label">Sửa</span>
+                    <button class="tbtn" id="mode-delete" onclick="setMode('delete')">
+                        <div class="tbtn-icon"><span class="icon-delete">✕</span></div>
+                        Xóa Đối Tượng
+                    </button>
+                    <button class="tbtn" id="mode-move" onclick="setMode('move')">
+                        <div class="tbtn-icon"><div class="icon-move"></div></div>
+                        Di Chuyển
+                    </button>
+                </div>
+                <div class="toolbar-group flex-fill">
+                    <span class="toolbar-group-label">Dữ Liệu</span>
+                    <button class="tbtn save-open" onclick="saveGraph()">
+                        <div class="tbtn-icon"><div class="icon-save"></div></div>
+                        Lưu Đồ Thị
+                    </button>
+                    <button class="tbtn save-open" onclick="openGraph()">
+                        <div class="tbtn-icon"><div class="icon-open"></div></div>
+                        Mở Đồ Thị
+                    </button>
+                    <button class="tbtn save-open" onclick="loadSampleGraph()">
+                        <div class="tbtn-icon"><div class="icon-new"></div></div>
+                        Đồ Thị Mẫu
+                    </button>
+                    <button class="tbtn save-open" onclick="createNewGraph()">
+                        <div class="tbtn-icon"><div class="icon-new"></div></div>
+                        Tạo File Mới
+                    </button>
+                </div>
+                <div class="toolbar-group">
+                    <button class="tbtn danger" onclick="clearGraph()">
+                        <div class="tbtn-icon"><div class="icon-clear"></div></div>
+                        Xóa Sạch Canvas
+                    </button>
+                </div>
+            </div>
+
+            <div class="canvas-wrap" id="graph-map">
+                <canvas id="graphCanvas"></canvas>
+                <div class="canvas-hint" id="canvas-hint">
+                    <p>● Chọn công cụ bên trên để bắt đầu vẽ</p>
+                    <p>Click để thêm đỉnh · Kéo để nối cạnh · Đồ thị vô hướng</p>
+                </div>
+            </div>
+
+            <div class="log-panel">
+                <div class="log-title">Log Thực Thi</div>
+                <div id="execution-log">
+                    <div class="log-entry"><span class="ts">[00:00]</span>Sẵn sàng — vẽ đồ thị vô hướng và bắt đầu xây MST.</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../assets/js/supabaseClient.js"></script>
+    <script src="../assets/js/auth.js"></script>
+    <script src="../assets/js/workspace.js"></script>
+    <script src="../assets/js/kruskal.js"></script>
+
+    <script>
+        /* ── Kruskal UI helpers ── */
+
+        window._kruskalSteps = [];
+        window._stepIndex    = -1;
+
+        /* Màu cho các component (Union-Find) */
+        const COMP_COLORS = [
+            { bg: 'rgba(192,132,252,0.18)', border: 'rgba(192,132,252,0.5)', text: '#c084fc' },
+            { bg: 'rgba(79,195,247,0.15)',  border: 'rgba(79,195,247,0.4)',  text: '#4fc3f7' },
+            { bg: 'rgba(74,222,128,0.15)',  border: 'rgba(74,222,128,0.4)',  text: '#4ade80' },
+            { bg: 'rgba(251,146,60,0.15)',  border: 'rgba(251,146,60,0.4)',  text: '#fb923c' },
+            { bg: 'rgba(248,113,113,0.15)', border: 'rgba(248,113,113,0.4)',text: '#f87171' },
+            { bg: 'rgba(250,204,21,0.15)',  border: 'rgba(250,204,21,0.4)',  text: '#facc15' },
+        ];
+
+        /* Render bảng cạnh đã sort */
+        function renderSortedEdges(edges) {
+            const tbody = document.getElementById('sorted-edge-list');
+            if (!edges || edges.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="color:var(--text-muted); font-family:var(--font-ui);">Chưa có dữ liệu</td></tr>';
+                return;
+            }
+            tbody.innerHTML = edges.map(e => {
+                const cls    = e.status === 'accepted' ? 'edge-accepted' : e.status === 'rejected' ? 'edge-rejected' : '';
+                const dotClr = e.status === 'accepted' ? '#4ade80' : e.status === 'rejected' ? '#ff6b6b' : 'transparent';
+                return `<tr class="${cls}">
+                    <td><span class="edge-status-dot" style="background:${dotClr};"></span></td>
+                    <td>${e.fromLabel}</td>
+                    <td>${e.toLabel}</td>
+                    <td class="edge-weight">${e.weight}</td>
+                </tr>`;
+            }).join('');
+
+            const accepted = edges.filter(e => e.status === 'accepted').length;
+            const rejected = edges.filter(e => e.status === 'rejected').length;
+            document.getElementById('accepted-count').textContent = accepted;
+            document.getElementById('rejected-count').textContent = rejected;
+        }
+
+        /* Render thành phần liên thông */
+        function renderComponents(components) {
+            /* components: [ [nodeLabel, nodeLabel, ...], [...], ... ] */
+            const el = document.getElementById('comp-list');
+            if (!components || components.length === 0) {
+                el.innerHTML = '<span style="font-size:11px; color:var(--text-muted); font-family:var(--font-ui);">Chưa chạy</span>';
+                return;
+            }
+            el.innerHTML = components.map((comp, i) => {
+                const c = COMP_COLORS[i % COMP_COLORS.length];
+                return `<span class="comp-badge" style="background:${c.bg}; border-color:${c.border}; color:${c.text};">
+                    {${comp.join(', ')}}
+                </span>`;
+            }).join('');
+        }
+
+        /* Step controls */
+        function updateStepButtons() {
+            document.getElementById('btn-prev').disabled = window._stepIndex <= 0;
+            document.getElementById('btn-next').disabled = window._stepIndex >= window._kruskalSteps.length - 1;
+        }
+
+        function stepNext() {
+            if (window._stepIndex < window._kruskalSteps.length - 1) {
+                window._stepIndex++;
+                applyStep(window._kruskalSteps[window._stepIndex]);
+                updateStepButtons();
+            }
+        }
+
+        function stepPrev() {
+            if (window._stepIndex > 0) {
+                window._stepIndex--;
+                applyStep(window._kruskalSteps[window._stepIndex]);
+                updateStepButtons();
+            }
+        }
+
+        /* Reset */
+        function resetVisualize() {
+            window._kruskalSteps = [];
+            window._stepIndex    = -1;
+            updateStepButtons();
+            renderSortedEdges([]);
+            renderComponents([]);
+            document.getElementById('mst-total').textContent      = '0';
+            document.getElementById('accepted-count').textContent = '0';
+            document.getElementById('rejected-count').textContent = '0';
+            if (typeof clearHighlight === 'function') clearHighlight();
+            log('↺ Đã reset — đồ thị giữ nguyên, màu highlight xóa sạch.');
+        }
+
+        /* So sánh với Prim */
+        function compareWithPrim() {
+            sessionStorage.setItem('compareGraph', JSON.stringify({
+                nodes: graph.nodes,
+                edges: graph.edges,
+                from:  'kruskal'
+            }));
+            window.open('../pages/prim.html?compare=1', '_blank');
+        }
+
+        /* Placeholder — kruskal.js override */
+        function applyStep(step) {
+            /* kruskal.js implement: nhận snapshot
+               { sortedEdges, components, mstTotal, currentEdgeId }
+               rồi gọi draw() + renderSortedEdges() + renderComponents() */
+        }
+
+        function loadSampleGraph() {
+            if (typeof _loadSampleKruskal === 'function') {
+                _loadSampleKruskal();
+            } else {
+                log('⚠ Hàm loadSampleGraph chưa được implement trong kruskal.js');
+            }
+        }
+
+        /* Đọc đồ thị từ Prim nếu mở qua compare */
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('compare') === '1') {
+                const raw = sessionStorage.getItem('compareGraph');
+                if (raw) {
+                    try {
+                        const { nodes, edges } = JSON.parse(raw);
+                        _loadGraphData(nodes, edges, 'compare-graph', null);
+                        document.getElementById('compare-banner').classList.add('visible');
+                        log('⇄ Đã tải đồ thị từ trang Prim để so sánh.');
+                    } catch (e) {
+                        log('⚠ Không thể tải đồ thị từ trang Prim.');
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

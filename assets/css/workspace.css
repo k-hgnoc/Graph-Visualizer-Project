@@ -1,0 +1,434 @@
+/* ════════════════════════════════════════════
+   workspace.css  —  dijkstra, DFS, ford-bellman, kruskal, prim
+   Yêu cầu: variables.css + style.css nạp trước
+   ════════════════════════════════════════════ */
+
+/* ══════════════════════
+   PAGE WRAPPER
+   Đảm bảo body không bị ảnh hưởng bởi
+   background image từ index.html
+══════════════════════ */
+body {
+    background-attachment: local;
+}
+
+/* ══════════════════════
+   PAGE TITLE ROW
+══════════════════════ */
+.page-title-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 20px;
+    height: 48px;
+    flex-shrink: 0;
+    background: var(--dark-bg);
+    position: relative;
+    z-index: 10;
+}
+
+/* ══════════════════════
+   MAIN GRID
+══════════════════════ */
+.workspace {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 14px;
+    padding: 0 20px 20px;
+    /* header=52px  title-row=48px  padding-bottom=20px */
+    height: calc(100vh - 52px - 48px);
+    overflow: hidden;
+}
+
+/* ══════════════════════
+   LEFT PANEL
+══════════════════════ */
+.left-panel {
+    display: flex;
+    flex-direction: column;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+.left-panel::-webkit-scrollbar       { width: 4px; }
+.left-panel::-webkit-scrollbar-track { background: transparent; }
+.left-panel::-webkit-scrollbar-thumb { background: rgba(255,45,107,0.25); border-radius: 2px; }
+
+.panel-section {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--panel-border);
+    flex-shrink: 0;
+}
+.panel-section:last-child {
+    border-bottom: none;
+    flex: 1;
+}
+
+.section-label {
+    font-family: var(--font-ui);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    color: var(--pink);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+}
+
+/* ── Form controls ── */
+.input-group { margin-bottom: 11px; }
+
+.input-group label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 0.8px;
+    margin-bottom: 4px;
+}
+
+.node-dropdown {
+    width: 100%;
+    height: 32px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,45,107,0.25);
+    border-radius: var(--btn-radius);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 0 10px;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+}
+.node-dropdown:focus  { border-color: var(--pink); }
+.node-dropdown option { background: #1a1a28; }
+
+/* ── Run button ── */
+.btn-run {
+    width: 100%;
+    height: 38px;
+    background: var(--pink);
+    border: none;
+    border-radius: var(--btn-radius);
+    color: #fff;
+    font-family: var(--font-ui);
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background .15s, transform .1s;
+    margin-top: 6px;
+}
+.btn-run:hover  { background: #e8215a; }
+.btn-run:active { transform: scale(0.98); }
+
+/* ── Add waypoint button ── */
+.btn-add-waypoint {
+    background: transparent;
+    border: 1px solid rgba(255,45,107,0.3);
+    border-radius: 3px;
+    color: var(--pink);
+    font-size: 10px;
+    padding: 2px 7px;
+    cursor: pointer;
+    font-family: var(--font-ui);
+    font-weight: 600;
+    letter-spacing: 1px;
+    transition: background .15s;
+    flex-shrink: 0;
+}
+.btn-add-waypoint:hover { background: var(--pink-glow); }
+
+/* ── Waypoints ── */
+.waypoint-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+.waypoint-row select {
+    flex: 1;
+    height: 28px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,45,107,0.2);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 0 6px;
+    outline: none;
+    appearance: none;
+}
+.waypoint-row select option { background: #1a1a28; }
+.waypoint-row select:focus  { border-color: var(--pink); }
+
+.waypoint-handle {
+    color: rgba(138,122,144,0.4);
+    font-size: 12px;
+    cursor: grab;
+    padding: 0 2px;
+    flex-shrink: 0;
+}
+.waypoint-del {
+    background: transparent;
+    border: none;
+    color: rgba(255,80,80,0.45);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+    transition: color .15s;
+    flex-shrink: 0;
+}
+.waypoint-del:hover { color: #ff6b6b; }
+
+.waypoint-empty {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: rgba(138,122,144,0.45);
+    padding: 4px 0;
+    letter-spacing: 0.5px;
+}
+
+/* ── Results ── */
+.result-block { margin-bottom: 11px; }
+
+.result-label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+}
+.res-box {
+    background: rgba(255,45,107,0.06);
+    border: 1px solid rgba(255,45,107,0.15);
+    border-radius: var(--btn-radius);
+    padding: 7px 10px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text);
+    min-height: 32px;
+    word-break: break-all;
+    line-height: 1.5;
+}
+.res-box.placeholder { color: var(--text-muted); }
+
+.res-value {
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--pink);
+}
+
+/* ══════════════════════
+   RIGHT PANEL
+══════════════════════ */
+.right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* ══════════════════════
+   TOOLBAR
+══════════════════════ */
+.toolbar {
+    display: flex;
+    align-items: stretch;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    height: 50px;
+    flex-shrink: 0;
+    overflow: hidden;
+    width: 100%;
+}
+
+.toolbar-group {
+    display: flex;
+    align-items: stretch;
+    position: relative;
+    flex-shrink: 0;
+}
+.toolbar-group.flex-fill { flex: 1; }
+
+.toolbar-group::after {
+    content: '';
+    position: absolute;
+    right: 0; top: 8px; bottom: 8px;
+    width: 1px;
+    background: var(--panel-border);
+    pointer-events: none;
+}
+.toolbar-group:last-child::after { display: none; }
+
+.toolbar-group-label {
+    display: flex;
+    align-items: center;
+    padding: 0 8px 0 12px;
+    font-size: 9px;
+    letter-spacing: 1.8px;
+    color: rgba(255,45,107,0.55);
+    font-weight: 700;
+    text-transform: uppercase;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ── Toolbar buttons ── */
+.tbtn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 0 14px;
+    background: transparent;
+    border: none;
+    border-left: 1px solid rgba(255,45,107,0.08);
+    color: var(--text-muted);
+    font-family: var(--font-ui);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+    white-space: nowrap;
+    min-width: 72px;
+    height: 100%;
+    position: relative;
+    flex-shrink: 0;
+}
+.tbtn:first-of-type { border-left: none; }
+.tbtn:hover         { background: rgba(255,45,107,0.07); color: var(--text); }
+.tbtn.active        { background: rgba(255,45,107,0.13); color: var(--pink); }
+.tbtn.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 8px; right: 8px;
+    height: 2px;
+    background: var(--pink);
+    border-radius: 2px 2px 0 0;
+}
+.tbtn.danger        { color: #ff6b6b; }
+.tbtn.danger:hover  { background: rgba(255,50,50,0.08); }
+.tbtn.save-open        { color: #4fc3f7; }
+.tbtn.save-open:hover  { background: rgba(79,195,247,0.07); color: #81d4fa; }
+
+/* ── Toolbar icons ── */
+.tbtn-icon {
+    width: 16px; height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.icon-node {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+}
+.icon-edge { width: 16px; height: 12px; position: relative; }
+.icon-edge::before,
+.icon-edge::after {
+    content: '';
+    position: absolute;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+}
+.icon-edge::before { left: 0;  top: 50%; transform: translateY(-50%); }
+.icon-edge::after  { right: 0; top: 50%; transform: translateY(-50%); }
+.icon-delete { font-size: 13px; line-height: 1; }
+.icon-move {
+    width: 12px; height: 12px;
+    border: 2px solid currentColor;
+    border-radius: 2px;
+    position: relative;
+}
+.icon-move::after {
+    content: '';
+    position: absolute;
+    right: -5px; top: 50%; transform: translateY(-50%);
+    border-left: 4px solid currentColor;
+    border-top: 3px solid transparent;
+    border-bottom: 3px solid transparent;
+}
+.icon-save, .icon-open, .icon-new, .icon-clear {
+    width: 12px; height: 12px;
+    border: 2px solid currentColor;
+    border-radius: 2px;
+}
+
+/* ══════════════════════
+   CANVAS
+══════════════════════ */
+.canvas-wrap {
+    flex: 1;
+    background: var(--canvas-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    min-height: 0;
+}
+.canvas-wrap canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+.canvas-hint {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+    opacity: 0.2;
+}
+.canvas-hint p {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--pink);
+    letter-spacing: 1px;
+    line-height: 2.2;
+}
+
+/* ══════════════════════
+   LOG PANEL
+══════════════════════ */
+.log-panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    height: 110px;
+    flex-shrink: 0;
+    overflow-y: auto;
+}
+.log-panel::-webkit-scrollbar       { width: 3px; }
+.log-panel::-webkit-scrollbar-track { background: transparent; }
+.log-panel::-webkit-scrollbar-thumb { background: rgba(255,45,107,0.3); border-radius: 2px; }
+
+.log-title {
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    color: var(--pink);
+    font-weight: 700;
+    margin-bottom: 7px;
+    text-transform: uppercase;
+}
+.log-entry {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.7;
+}
+.log-entry .ts {
+    color: rgba(255,45,107,0.45);
+    margin-right: 7px;
+}

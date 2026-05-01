@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DFS Visualizer</title>
+    <link rel="stylesheet" href="../assets/css/variables.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/workspace.css">
+    <style>
+        /* ── DFS-specific styles ── */
+        .visited-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            min-height: 32px;
+            padding: 6px 8px;
+            background: rgba(255,45,107,0.06);
+            border: 1px solid rgba(255,45,107,0.15);
+            border-radius: 5px;
+        }
+        .visited-badge {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            background: rgba(255,45,107,0.18);
+            color: var(--pink);
+            border: 1px solid rgba(255,45,107,0.3);
+            border-radius: 3px;
+            padding: 1px 7px;
+        }
+        .cycle-badge {
+            display: inline-block;
+            font-size: 10px;
+            font-family: var(--font-ui);
+            font-weight: 700;
+            letter-spacing: 1px;
+            padding: 3px 8px;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+        .cycle-yes { background: rgba(255,80,80,0.15); color: #ff6b6b; border: 1px solid rgba(255,80,80,0.3); }
+        .cycle-no  { background: rgba(74,222,128,0.12); color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
+        .step-controls {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .btn-step {
+            flex: 1;
+            height: 32px;
+            background: transparent;
+            border: 1px solid rgba(255,45,107,0.3);
+            border-radius: 5px;
+            color: var(--pink);
+            font-family: var(--font-ui);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background .15s;
+        }
+        .btn-step:hover:not(:disabled) { background: rgba(255,45,107,0.1); }
+        .btn-step:disabled { opacity: 0.3; cursor: not-allowed; }
+        .speed-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 6px;
+        }
+        .speed-row label {
+            font-size: 11px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .speed-slider {
+            flex: 1;
+            accent-color: var(--pink);
+            height: 3px;
+            cursor: pointer;
+        }
+        .legend-row {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+        .legend-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .legend-line {
+            width: 20px; height: 2px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body class="theme-pink">
+
+    <header>
+        <div class="logo">COPIGEMGPT<span>.NET</span></div>
+        <nav id="auth-nav"></nav>
+    </header>
+
+    <div class="page-title-row">
+        <button class="btn-back" onclick="location.href='../index.html'">← QUAY LẠI</button>
+        <h1 class="page-title">Thuật Toán DFS</h1>
+    </div>
+
+    <div class="workspace">
+
+        <!-- LEFT PANEL -->
+        <div class="left-panel">
+
+            <!-- CẤU HÌNH -->
+            <div class="panel-section">
+                <div class="section-label">Cấu Hình Duyệt</div>
+
+                <div class="input-group">
+                    <label>Đỉnh xuất phát</label>
+                    <select id="start-node" class="node-dropdown">
+                        <option value="" disabled selected>-- Chọn --</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label style="display:flex; align-items:center; justify-content:space-between;">
+                        <span>Tốc độ animation</span>
+                    </label>
+                    <div class="speed-row">
+                        <label>Chậm</label>
+                        <input type="range" id="speed-slider" class="speed-slider" min="1" max="5" value="3">
+                        <label>Nhanh</label>
+                    </div>
+                </div>
+
+                <button class="btn-run" onclick="runAlgorithm()">Bắt Đầu Duyệt</button>
+
+                <div class="step-controls">
+                    <button class="btn-step" id="btn-prev" onclick="stepPrev()" disabled>◀ Trước</button>
+                    <button class="btn-step" id="btn-next" onclick="stepNext()" disabled>Tiếp ▶</button>
+                </div>
+
+                <button class="btn-step" id="btn-reset" onclick="resetVisualize()"
+                        style="width:100%; margin-top:6px; color:var(--text-muted);">
+                    ↺ Reset Màu
+                </button>
+            </div>
+
+            <!-- KẾT QUẢ -->
+            <div class="panel-section">
+                <div class="section-label">Kết Quả</div>
+
+                <div class="result-block">
+                    <div class="result-label">Thứ Tự Duyệt</div>
+                    <div id="visited-order" class="visited-list"></div>
+                </div>
+
+                <div class="result-block" style="margin-top:10px;">
+                    <div class="result-label">Phát Hiện Chu Trình</div>
+                    <div id="cycle-result">
+                        <span class="cycle-badge" style="color:var(--text-muted); border:1px solid rgba(255,255,255,0.1); background:transparent;">
+                            Chưa chạy
+                        </span>
+                    </div>
+                </div>
+
+                <div class="result-block" style="margin-top:10px;">
+                    <div class="result-label">Thành Phần Liên Thông</div>
+                    <p id="component-count" class="res-value">0</p>
+                </div>
+            </div>
+
+            <!-- CHÚ THÍCH -->
+            <div class="panel-section" style="flex:1;">
+                <div class="section-label">Chú Thích</div>
+                <div class="legend-row">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:#4ade80; border:2px solid #16a34a;"></div>
+                        Đỉnh xuất phát
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:#f59e0b; border:2px solid #d97706;"></div>
+                        Đỉnh đang xét
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:#c084fc; border:2px solid #7c3aed;"></div>
+                        Đã thăm
+                    </div>
+                    <div class="legend-item" style="margin-top:4px;">
+                        <div class="legend-line" style="background:#7c3aed;"></div>
+                        Tree edge
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-line" style="background:#ff6b6b; border-top: 2px dashed #ff6b6b; height:0;"></div>
+                        Back edge (chu trình)
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="right-panel">
+
+            <div class="toolbar">
+                <div class="toolbar-group">
+                    <span class="toolbar-group-label">Vẽ</span>
+                    <button class="tbtn active" id="mode-node" onclick="setMode('node')">
+                        <div class="tbtn-icon"><div class="icon-node"></div></div>
+                        Thêm Đỉnh
+                    </button>
+                    <button class="tbtn" id="mode-edge" onclick="setMode('edge')">
+                        <div class="tbtn-icon"><div class="icon-edge"></div></div>
+                        Thêm Cạnh
+                    </button>
+                </div>
+                <div class="toolbar-group">
+                    <span class="toolbar-group-label">Sửa</span>
+                    <button class="tbtn" id="mode-delete" onclick="setMode('delete')">
+                        <div class="tbtn-icon"><span class="icon-delete">✕</span></div>
+                        Xóa Đối Tượng
+                    </button>
+                    <button class="tbtn" id="mode-move" onclick="setMode('move')">
+                        <div class="tbtn-icon"><div class="icon-move"></div></div>
+                        Di Chuyển
+                    </button>
+                </div>
+                <div class="toolbar-group flex-fill">
+                    <span class="toolbar-group-label">Dữ Liệu</span>
+                    <button class="tbtn save-open" onclick="saveGraph()">
+                        <div class="tbtn-icon"><div class="icon-save"></div></div>
+                        Lưu Đồ Thị
+                    </button>
+                    <button class="tbtn save-open" onclick="openGraph()">
+                        <div class="tbtn-icon"><div class="icon-open"></div></div>
+                        Mở Đồ Thị
+                    </button>
+                    <button class="tbtn save-open" onclick="loadSampleGraph()">
+                        <div class="tbtn-icon"><div class="icon-new"></div></div>
+                        Đồ Thị Mẫu
+                    </button>
+                    <button class="tbtn save-open" onclick="createNewGraph()">
+                        <div class="tbtn-icon"><div class="icon-new"></div></div>
+                        Tạo File Mới
+                    </button>
+                </div>
+                <div class="toolbar-group">
+                    <button class="tbtn danger" onclick="clearGraph()">
+                        <div class="tbtn-icon"><div class="icon-clear"></div></div>
+                        Xóa Sạch Canvas
+                    </button>
+                </div>
+            </div>
+
+            <div class="canvas-wrap" id="graph-map">
+                <canvas id="graphCanvas"></canvas>
+                <div class="canvas-hint" id="canvas-hint">
+                    <p>● Chọn công cụ bên trên để bắt đầu vẽ</p>
+                    <p>Click để thêm đỉnh · Kéo để nối cạnh</p>
+                </div>
+            </div>
+
+            <div class="log-panel">
+                <div class="log-title">Log Thực Thi</div>
+                <div id="execution-log">
+                    <div class="log-entry"><span class="ts">[00:00]</span>Sẵn sàng — chọn đỉnh xuất phát và bắt đầu duyệt.</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../assets/js/supabaseClient.js"></script>
+    <script src="../assets/js/auth.js"></script>
+    <script src="../assets/js/workspace.js"></script>
+    <script src="../assets/js/dfs.js"></script>
+
+    <script>
+        /* ── DFS UI helpers (giao diện, ko phải logic) ── */
+
+        /* Các bước animation được lưu vào đây sau khi runAlgorithm() tính xong */
+        window._dfsSteps   = [];   // mảng các snapshot trạng thái
+        window._stepIndex  = -1;
+
+        /* Hiển thị thứ tự duyệt */
+        function renderVisitedOrder(labels) {
+            const el = document.getElementById('visited-order');
+            el.innerHTML = labels.map(l =>
+                `<span class="visited-badge">${l}</span>`
+            ).join('');
+        }
+
+        /* Hiển thị có/không chu trình */
+        function renderCycleResult(hasCycle) {
+            const el = document.getElementById('cycle-result');
+            el.innerHTML = hasCycle
+                ? '<span class="cycle-badge cycle-yes">Có chu trình</span>'
+                : '<span class="cycle-badge cycle-no">Không có chu trình</span>';
+        }
+
+        /* Cập nhật số thành phần liên thông */
+        function renderComponentCount(n) {
+            document.getElementById('component-count').textContent = n;
+        }
+
+        /* Bật / tắt nút Prev / Next */
+        function updateStepButtons() {
+            document.getElementById('btn-prev').disabled = window._stepIndex <= 0;
+            document.getElementById('btn-next').disabled = window._stepIndex >= window._dfsSteps.length - 1;
+        }
+
+        /* Step forward — logic thật sẽ ở dfs.js */
+        function stepNext() {
+            if (window._stepIndex < window._dfsSteps.length - 1) {
+                window._stepIndex++;
+                applyStep(window._dfsSteps[window._stepIndex]);
+                updateStepButtons();
+            }
+        }
+
+        /* Step backward */
+        function stepPrev() {
+            if (window._stepIndex > 0) {
+                window._stepIndex--;
+                applyStep(window._dfsSteps[window._stepIndex]);
+                updateStepButtons();
+            }
+        }
+
+        /* Reset về trạng thái ban đầu (xóa highlight, giữ đồ thị) */
+        function resetVisualize() {
+            window._dfsSteps  = [];
+            window._stepIndex = -1;
+            updateStepButtons();
+            document.getElementById('visited-order').innerHTML = '';
+            document.getElementById('cycle-result').innerHTML  =
+                '<span class="cycle-badge" style="color:var(--text-muted);border:1px solid rgba(255,255,255,0.1);background:transparent;">Chưa chạy</span>';
+            document.getElementById('component-count').textContent = '0';
+            // dfs.js sẽ expose hàm clearHighlight() để xóa màu canvas
+            if (typeof clearHighlight === 'function') clearHighlight();
+            log('↺ Đã reset — đồ thị giữ nguyên, màu highlight xóa sạch.');
+        }
+
+        /* Hàm placeholder — dfs.js sẽ override */
+        function applyStep(step) {
+            /* dfs.js implement: nhận snapshot { visited, current, treeEdges, backEdges }
+               rồi gọi draw() với màu tương ứng */
+        }
+
+        /* Tải đồ thị mẫu — dfs.js implement loadSampleGraph() */
+        function loadSampleGraph() {
+            if (typeof _loadSampleDFS === 'function') {
+                _loadSampleDFS();
+            } else {
+                log('⚠ Hàm loadSampleGraph chưa được implement trong dfs.js');
+            }
+        }
+    </script>
+</body>
+</html>
