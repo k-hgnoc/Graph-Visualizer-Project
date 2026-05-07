@@ -9,6 +9,36 @@
     <link rel="stylesheet" href="../assets/css/workspace.css">
     <style>
         /* ── Kruskal-specific styles ── */
+        .cmp-graphs {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+.cmp-graph-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 8px;
+    text-align: center;
+    width: 280px;
+}
+.cmp-graph-card canvas {
+    background: #0f0f17;
+    border-radius: 8px;
+    width: 100%;
+    height: auto;
+    background: #0a0a10;
+}
+.cmp-graph-title {
+    font-family: var(--font-ui);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #4fc3f7;
+    margin-bottom: 6px;
+}
         .edge-table {
             width: 100%;
             border-collapse: collapse;
@@ -120,6 +150,210 @@
             margin-bottom: 8px;
         }
         .compare-banner.visible { display: block; }
+
+        /* ── So sánh Modal ── */
+        .cmp-overlay {
+            position: fixed; inset: 0;
+            background: rgba(10,10,18,0.75);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .cmp-overlay.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .cmp-panel {
+            width: 100%;
+            max-width: 860px;
+            max-height: 82vh;
+            overflow-y: auto;
+            background: var(--panel-bg, #16161f);
+            border: 1px solid rgba(255,45,107,0.2);
+            border-bottom: none;
+            border-radius: 14px 14px 0 0;
+            padding: 0 0 32px;
+            transform: translateY(100%);
+            transition: transform 0.38s cubic-bezier(0.22,1,0.36,1);
+        }
+        .cmp-overlay.visible .cmp-panel {
+            transform: translateY(0);
+        }
+        .cmp-header {
+            position: sticky; top: 0;
+            background: var(--panel-bg, #16161f);
+            border-bottom: 1px solid rgba(255,45,107,0.12);
+            padding: 14px 20px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 2;
+        }
+        .cmp-title {
+            font-family: var(--font-ui);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #4fc3f7;
+        }
+        .cmp-close {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 5px;
+            color: var(--text-muted, #888);
+            font-size: 13px;
+            padding: 3px 10px;
+            cursor: pointer;
+            font-family: var(--font-ui);
+            transition: border-color 0.15s, color 0.15s;
+        }
+        .cmp-close:hover { border-color: rgba(255,45,107,0.4); color: var(--pink, #ff2d6b); }
+
+        .cmp-body { padding: 20px 20px 0; display: flex; flex-direction: column; gap: 20px; }
+
+        /* Hàng tổng quan */
+        .cmp-summary {
+            display: grid;
+            grid-template-columns: 1fr 80px 1fr;
+            gap: 0;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .cmp-col {
+            padding: 16px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            opacity: 0;
+            transform: translateY(16px);
+            transition: opacity 0.35s ease, transform 0.35s ease;
+        }
+        .cmp-col.anim-in { opacity: 1; transform: translateY(0); }
+        .cmp-col-title {
+            font-family: var(--font-ui);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #4fc3f7;
+            margin-bottom: 2px;
+        }
+        .cmp-divider {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(79,195,247,0.05);
+            border-left: 1px solid rgba(255,255,255,0.05);
+            border-right: 1px solid rgba(255,255,255,0.05);
+        }
+        .cmp-vs {
+            font-family: var(--font-ui);
+            font-size: 18px;
+            font-weight: 700;
+            color: rgba(79,195,247,0.4);
+        }
+        .cmp-stat { display: flex; flex-direction: column; gap: 2px; }
+        .cmp-stat-label {
+            font-size: 10px;
+            color: var(--text-muted, #888);
+            font-family: var(--font-ui);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .cmp-stat-value {
+            font-family: var(--font-mono);
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text, #eee);
+        }
+        .cmp-stat-value.highlight { color: #4ade80; }
+        .cmp-stat-value.muted     { color: var(--text-muted, #888); }
+
+        /* Bảng cạnh MST */
+        .cmp-section-title {
+            font-family: var(--font-ui);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-muted, #888);
+            margin-bottom: 8px;
+        }
+        .cmp-edge-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .cmp-edge-col {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 8px;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(12px);
+            transition: opacity 0.35s ease, transform 0.35s ease;
+        }
+        .cmp-edge-col.anim-in { opacity: 1; transform: translateY(0); }
+        .cmp-edge-col-header {
+            padding: 8px 12px;
+            background: rgba(79,195,247,0.06);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-family: var(--font-ui);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #4fc3f7;
+        }
+        .cmp-edge-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text, #eee);
+            opacity: 0;
+            transform: translateX(-8px);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+        .cmp-edge-row:last-child { border-bottom: none; }
+        .cmp-edge-row.anim-in { opacity: 1; transform: translateX(0); }
+        .cmp-edge-w {
+            margin-left: auto;
+            color: var(--pink, #ff2d6b);
+            font-weight: 600;
+        }
+        .cmp-edge-shared { background: rgba(74,222,128,0.06); }
+        .cmp-edge-unique  { background: rgba(255,45,107,0.04); }
+
+        /* Verdict */
+        .cmp-verdict {
+            border: 1px solid rgba(79,195,247,0.2);
+            border-radius: 8px;
+            padding: 14px 16px;
+            font-family: var(--font-ui);
+            font-size: 12px;
+            line-height: 1.7;
+            color: var(--text-muted, #aaa);
+            background: rgba(79,195,247,0.04);
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.4s ease 0.3s, transform 0.4s ease 0.3s;
+        }
+        .cmp-verdict.anim-in { opacity: 1; transform: translateY(0); }
+        .cmp-verdict strong { color: var(--text, #eee); }
+        .tag-same { color: #4ade80; font-weight: 700; }
+        .tag-diff { color: #f59e0b; font-weight: 700; }
     </style>
 </head>
 <body class="theme-pink">
@@ -314,10 +548,23 @@
             <div class="log-panel">
                 <div class="log-title">Log Thực Thi</div>
                 <div id="execution-log">
-                    <div class="log-entry"><span class="ts">[00:00]</span>Sẵn sàng — vẽ đồ thị vô hướng và bắt đầu xây MST.</div>
+                    <div class="log-entry">
                 </div>
             </div>
 
+        </div>
+    </div>
+
+    <!-- ══ Modal So Sánh Kruskal vs Prim ══ -->
+    <div class="cmp-overlay" id="cmp-overlay" onclick="_cmpOverlayClick(event)">
+        <div class="cmp-panel" id="cmp-panel">
+            <div class="cmp-header">
+                <span class="cmp-title">⇄ So Sánh Kruskal vs Prim</span>
+                <button class="cmp-close" onclick="closeCompareModal()">✕ Đóng</button>
+            </div>
+            <div class="cmp-body" id="cmp-body">
+                <!-- Được điền bởi JS -->
+            </div>
         </div>
     </div>
 
@@ -325,10 +572,12 @@
     <script src="../assets/js/supabaseClient.js"></script>
     <script src="../assets/js/auth.js"></script>
     <script src="../assets/js/workspace.js"></script>
-    <script src="../assets/js/kruskal.js"></script>
 
     <script>
-        /* ── Kruskal UI helpers ── */
+        /* ── Kruskal UI helpers ──
+           Khai báo TRƯỚC khi load kruskal.js.
+           applyStep KHÔNG khai báo ở đây — kruskal.js là nơi định nghĩa duy nhất.
+        */
 
         window._kruskalSteps = [];
         window._stepIndex    = -1;
@@ -352,7 +601,9 @@
             }
             tbody.innerHTML = edges.map(e => {
                 const cls    = e.status === 'accepted' ? 'edge-accepted' : e.status === 'rejected' ? 'edge-rejected' : '';
-                const dotClr = e.status === 'accepted' ? '#4ade80' : e.status === 'rejected' ? '#ff6b6b' : 'transparent';
+                const dotClr = e.status === 'accepted' ? '#4ade80'
+                             : e.status === 'rejected' ? '#ff6b6b'
+                             : e.status === 'examining' ? '#f59e0b' : 'transparent';
                 return `<tr class="${cls}">
                     <td><span class="edge-status-dot" style="background:${dotClr};"></span></td>
                     <td>${e.fromLabel}</td>
@@ -369,7 +620,6 @@
 
         /* Render thành phần liên thông */
         function renderComponents(components) {
-            /* components: [ [nodeLabel, nodeLabel, ...], [...], ... ] */
             const el = document.getElementById('comp-list');
             if (!components || components.length === 0) {
                 el.innerHTML = '<span style="font-size:11px; color:var(--text-muted); font-family:var(--font-ui);">Chưa chạy</span>';
@@ -392,7 +642,7 @@
         function stepNext() {
             if (window._stepIndex < window._kruskalSteps.length - 1) {
                 window._stepIndex++;
-                applyStep(window._kruskalSteps[window._stepIndex]);
+                if (typeof applyStep === 'function') applyStep(window._kruskalSteps[window._stepIndex]);
                 updateStepButtons();
             }
         }
@@ -400,7 +650,7 @@
         function stepPrev() {
             if (window._stepIndex > 0) {
                 window._stepIndex--;
-                applyStep(window._kruskalSteps[window._stepIndex]);
+                if (typeof applyStep === 'function') applyStep(window._kruskalSteps[window._stepIndex]);
                 updateStepButtons();
             }
         }
@@ -419,28 +669,438 @@
             log('↺ Đã reset — đồ thị giữ nguyên, màu highlight xóa sạch.');
         }
 
-        /* So sánh với Prim */
+        /* So sánh với Prim — mở modal thay vì tab mới */
         function compareWithPrim() {
-            sessionStorage.setItem('compareGraph', JSON.stringify({
-                nodes: graph.nodes,
-                edges: graph.edges,
-                from:  'kruskal'
-            }));
-            window.open('../pages/prim.html?compare=1', '_blank');
+            // Chạy Kruskal nếu chưa có kết quả
+            const steps = window._kruskalSteps || [];
+            const lastK = steps.length > 0 ? steps[steps.length - 1] : null;
+
+            if (!lastK || !lastK.mstEdges || lastK.mstEdges.length === 0) {
+                log('⚠ Hãy chạy thuật toán Kruskal trước khi so sánh.');
+                return;
+            }
+
+            // Chạy Prim nhanh (không animation) để lấy kết quả
+            const primResult = _runPrimSilent();
+            if (!primResult) {
+                log('⚠ Không thể chạy Prim để so sánh (đồ thị cần liên thông và có đỉnh).');
+                return;
+            }
+
+            _openCompareModal({
+                kruskal: { edges: lastK.mstEdges, total: lastK.mstTotal },
+                prim:    primResult,
+                self:    'kruskal'
+            },
+            graph.nodes
+        );
         }
 
-        /* Placeholder — kruskal.js override */
-        function applyStep(step) {
-            /* kruskal.js implement: nhận snapshot
-               { sortedEdges, components, mstTotal, currentEdgeId }
-               rồi gọi draw() + renderSortedEdges() + renderComponents() */
+        /* Chạy Prim im lặng — trả về { edges, total } hoặc null */
+        function _runPrimSilent() {
+            if (graph.nodes.length === 0) return null;
+            const startId = graph.nodes[0].id;
+            const n = graph.nodes.length;
+
+            // Xây adjacency list có trọng số
+            const adj = {};
+            graph.nodes.forEach(nd => { adj[nd.id] = []; });
+            graph.edges.forEach(e => {
+                adj[e.from].push({ to: e.to,   w: parseFloat(e.weight), fromLabel: _getNodeLabel(e.from), toLabel: _getNodeLabel(e.to) });
+                adj[e.to  ].push({ to: e.from,  w: parseFloat(e.weight), fromLabel: _getNodeLabel(e.to),  toLabel: _getNodeLabel(e.from) });
+            });
+
+            const inMST = new Set([startId]);
+            const mstEdges = [];
+            let total = 0;
+
+            while (inMST.size < n) {
+                let best = null;
+                for (const u of inMST) {
+                    for (const nb of (adj[u] || [])) {
+                        if (!inMST.has(nb.to)) {
+                            if (!best || nb.w < best.w) {
+                                best = { from: u, to: nb.to, w: nb.w,
+                                         fromLabel: _getNodeLabel(u), toLabel: _getNodeLabel(nb.to) };
+                            }
+                        }
+                    }
+                }
+                if (!best) break; // đồ thị không liên thông
+                inMST.add(best.to);
+                mstEdges.push({ fromLabel: best.fromLabel, toLabel: best.toLabel, weight: best.w });
+                total += best.w;
+            }
+
+            return { edges: mstEdges, total };
+        }
+
+                function drawMiniMST(canvasId, nodes, mstEdges) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) {
+                console.error('Canvas not found:', canvasId);
+                return;
+            }
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width, h = canvas.height;
+            ctx.clearRect(0, 0, w, h);
+            ctx.fillStyle = '#0a0a10';
+            ctx.fillRect(0, 0, w, h);
+
+            if (!nodes || nodes.length === 0) {
+                ctx.fillStyle = '#888';
+                ctx.font = '12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('Không có đỉnh', w/2, h/2);
+                return;
+            }
+
+            const validNodes = nodes.filter(n => typeof n.x === 'number' && typeof n.y === 'number');
+            if (validNodes.length === 0) {
+                ctx.fillStyle = '#888';
+                ctx.fillText('Đỉnh thiếu tọa độ', w/2, h/2);
+                return;
+            }
+
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            validNodes.forEach(n => {
+                minX = Math.min(minX, n.x);
+                maxX = Math.max(maxX, n.x);
+                minY = Math.min(minY, n.y);
+                maxY = Math.max(maxY, n.y);
+            });
+            const padding = 30;
+            const rangeX = maxX - minX || 1;
+            const rangeY = maxY - minY || 1;
+            const scaleX = (w - 2 * padding) / rangeX;
+            const scaleY = (h - 2 * padding) / rangeY;
+            const scale = Math.min(scaleX, scaleY);
+            const offsetX = padding + (w - 2 * padding - scale * rangeX) / 2;
+            const offsetY = padding + (h - 2 * padding - scale * rangeY) / 2;
+
+            function transform(p) {
+                return { x: offsetX + (p.x - minX) * scale, y: offsetY + (p.y - minY) * scale };
+            }
+
+            const nodeByLabel = {};
+            validNodes.forEach(n => {
+                nodeByLabel[n.label] = n;
+                if (n.id !== undefined) nodeByLabel[n.id] = n;
+            });
+
+            if (mstEdges && mstEdges.length) {
+                ctx.beginPath();
+                ctx.lineWidth = 2.5;
+                ctx.strokeStyle = '#a855f7';
+                mstEdges.forEach(edge => {
+                    const fromLabel = edge.fromLabel || edge.from;
+                    const toLabel = edge.toLabel || edge.to;
+                    const fromNode = nodeByLabel[fromLabel];
+                    const toNode = nodeByLabel[toLabel];
+                    if (!fromNode || !toNode) return;
+                    const p1 = transform(fromNode);
+                    const p2 = transform(toNode);
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.stroke();
+                });
+            }
+
+            validNodes.forEach(node => {
+                const p = transform(node);
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+                ctx.fillStyle = '#c084fc';
+                ctx.fill();
+                ctx.strokeStyle = '#7c3aed';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 12px "JetBrains Mono", monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(node.label, p.x, p.y);
+            });
+        }
+
+        /* ── Mở modal với hiệu ứng ── */
+        function _openCompareModal({ kruskal, prim, self }, nodes) {
+            const body = document.getElementById('cmp-body');
+
+            const kEdgeSet = new Set(kruskal.edges.map(e => [e.fromLabel, e.toLabel].sort().join('—')));
+            const pEdgeSet = new Set(prim.edges.map(e => [e.fromLabel, e.toLabel].sort().join('—')));
+            const sameTotal = kruskal.total === prim.total;
+            const sameMST = [...kEdgeSet].filter(k => pEdgeSet.has(k)).length === kruskal.edges.length && kruskal.edges.length === prim.edges.length;
+
+            let verdictHTML = '';
+            if (sameTotal && sameMST) {
+                verdictHTML = `<span class="tag-same">✓ Cùng kết quả MST.</span> Kruskal và Prim chọn <strong>đúng các cạnh giống nhau</strong> với tổng trọng số <strong>${kruskal.total}</strong>. Trên đồ thị này, cả hai thuật toán cho kết quả tối ưu duy nhất.`;
+            } else if (sameTotal) {
+                verdictHTML = `<span class="tag-same">✓ Cùng tổng trọng số MST: ${kruskal.total}.</span> Tuy nhiên hai thuật toán <span class="tag-diff">chọn tập cạnh khác nhau</span> — điều này xảy ra khi đồ thị có nhiều cạnh cùng trọng số (MST không duy nhất).`;
+            } else {
+                verdictHTML = `<span class="tag-diff">⚠ Tổng trọng số khác nhau</span> — Kruskal: <strong>${kruskal.total}</strong>, Prim: <strong>${prim.total}</strong>. Điều này thường do đồ thị không liên thông hoặc Prim bắt đầu từ đỉnh không tối ưu.`;
+            }
+
+            body.innerHTML = `
+                <div class="cmp-graphs">
+                    <div class="cmp-graph-card">
+                        <div class="cmp-graph-title">🌲 Kruskal MST</div>
+                        <canvas id="mini-canvas-kruskal" width="260" height="260" style="width:260px;height:260px"></canvas>
+                    </div>
+                    <div class="cmp-graph-card">
+                        <div class="cmp-graph-title">🌲 Prim MST</div>
+                        <canvas id="mini-canvas-prim" width="260" height="260" style="width:260px;height:260px"></canvas>
+                    </div>
+                </div>
+                <div class="cmp-summary">
+                    <div class="cmp-col" id="cmp-col-k">
+                        <div class="cmp-col-title">${self === 'kruskal' ? '▶ Kruskal (trang này)' : 'Kruskal'}</div>
+                        <div class="cmp-stat"><span class="cmp-stat-label">Tổng trọng số</span>
+                            <span class="cmp-stat-value highlight">${kruskal.total}</span></div>
+                        <div class="cmp-stat"><span class="cmp-stat-label">Số cạnh MST</span>
+                            <span class="cmp-stat-value">${kruskal.edges.length}</span></div>
+                        <div class="cmp-stat"><span class="cmp-stat-label">Cách tiếp cận</span>
+                            <span class="cmp-stat-value muted" style="font-size:11px;">Sort cạnh + DSU</span></div>
+                    </div>
+                    <div class="cmp-divider"><span class="cmp-vs">VS</span></div>
+                    <div class="cmp-col" id="cmp-col-p">
+                        <div class="cmp-col-title">${self === 'prim' ? '▶ Prim (trang này)' : 'Prim'}</div>
+                        <div class="cmp-stat"><span class="cmp-stat-label">Tổng trọng số</span>
+                            <span class="cmp-stat-value ${sameTotal ? 'highlight' : 'muted'}">${prim.total}</span></div>
+                        <div class="cmp-stat"><span class="cmp-stat-label">Số cạnh MST</span>
+                            <span class="cmp-stat-value">${prim.edges.length}</span></div>
+                        <div class="cmp-stat"><span class="cmp-stat-label">Cách tiếp cận</span>
+                            <span class="cmp-stat-value muted" style="font-size:11px;">Greedy từ đỉnh</span></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="cmp-section-title">Danh Sách Cạnh MST</div>
+                    <div class="cmp-edge-grid">
+                        <div class="cmp-edge-col" id="cmp-ecol-k">
+                            <div class="cmp-edge-col-header">Kruskal</div>
+                            ${kruskal.edges.map((e, i) => {
+                                const key = [e.fromLabel, e.toLabel].sort().join('—');
+                                const shared = pEdgeSet.has(key);
+                                return `<div class="cmp-edge-row ${shared ? 'cmp-edge-shared' : 'cmp-edge-unique'}" data-ei="${i}">
+                                    <span>${e.fromLabel}</span>
+                                    <span style="color:var(--text-muted)">→</span>
+                                    <span>${e.toLabel}</span>
+                                    <span class="cmp-edge-w">${e.weight}</span>
+                                    ${shared ? '<span style="color:#4ade80;font-size:9px;margin-left:4px;">✓</span>' : ''}
+                                </div>`;
+                            }).join('')}
+                        </div>
+                        <div class="cmp-edge-col" id="cmp-ecol-p">
+                            <div class="cmp-edge-col-header">Prim</div>
+                            ${prim.edges.map((e, i) => {
+                                const key = [e.fromLabel, e.toLabel].sort().join('—');
+                                const shared = kEdgeSet.has(key);
+                                return `<div class="cmp-edge-row ${shared ? 'cmp-edge-shared' : 'cmp-edge-unique'}" data-ei="${i}">
+                                    <span>${e.fromLabel}</span>
+                                    <span style="color:var(--text-muted)">→</span>
+                                    <span>${e.toLabel}</span>
+                                    <span class="cmp-edge-w">${e.weight}</span>
+                                    ${shared ? '<span style="color:#4ade80;font-size:9px;margin-left:4px;">✓</span>' : ''}
+                                </div>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                    <p style="font-size:10px;color:var(--text-muted);margin-top:6px;font-family:var(--font-ui);">
+                        <span style="color:#4ade80;">✓</span> = cạnh xuất hiện ở cả hai MST
+                    </p>
+                </div>
+                <div class="cmp-verdict" id="cmp-verdict">${verdictHTML}</div>
+            `;
+
+            const overlay = document.getElementById('cmp-overlay');
+            overlay.classList.add('visible');
+
+            // Sau dòng: overlay.classList.add('visible');
+// Thêm đoạn này:
+
+const header = document.querySelector('#cmp-panel .cmp-header');
+if (header && !header.querySelector('.btn-switch-to-prim')) {
+    const switchBtn = document.createElement('button');
+    switchBtn.className = 'cmp-close btn-switch-to-prim';
+    switchBtn.style.marginRight = '10px';
+    switchBtn.style.borderColor = '#4ade80';
+    switchBtn.style.color = '#4ade80';
+    switchBtn.innerHTML = '🔄 Chạy Prim với đồ thị này';
+    switchBtn.onclick = function(e) {
+        e.stopPropagation();
+        // Lưu đồ thị hiện tại vào sessionStorage
+        const graphData = {
+            nodes: graph.nodes,
+            edges: graph.edges
+        };
+        sessionStorage.setItem('compareGraph', JSON.stringify(graphData));
+        // Chuyển sang trang Prim
+        window.location.href = 'prim.html?compare=1';
+    };
+    header.insertBefore(switchBtn, header.querySelector('.cmp-close'));
+}
+            document.body.style.overflow = 'hidden';
+
+            requestAnimationFrame(() => {
+                setTimeout(() => document.getElementById('cmp-col-k')?.classList.add('anim-in'), 80);
+                setTimeout(() => document.getElementById('cmp-col-p')?.classList.add('anim-in'), 180);
+                setTimeout(() => document.getElementById('cmp-ecol-k')?.classList.add('anim-in'), 280);
+                setTimeout(() => document.getElementById('cmp-ecol-p')?.classList.add('anim-in'), 360);
+
+                const rows = document.querySelectorAll('.cmp-edge-row');
+                rows.forEach((row, i) => {
+                    setTimeout(() => row.classList.add('anim-in'), 380 + i * 55);
+                });
+
+                setTimeout(() => document.getElementById('cmp-verdict')?.classList.add('anim-in'), 420 + rows.length * 40);
+
+                setTimeout(() => {
+                    drawMiniMST('mini-canvas-kruskal', nodes, kruskal.edges);
+                    drawMiniMST('mini-canvas-prim', nodes, prim.edges);
+                }, 600);
+            });
+        }
+
+        /* ── Mở modal với hiệu ứng ── */
+        function _openCompareModal({ kruskal, prim, self }, nodes) {
+    const body = document.getElementById('cmp-body');
+
+    // Tính các thống kê
+    const kEdgeSet = new Set(kruskal.edges.map(e => [e.fromLabel, e.toLabel].sort().join('—')));
+    const pEdgeSet = new Set(prim.edges.map(e => [e.fromLabel, e.toLabel].sort().join('—')));
+    const sharedEdges = [...kEdgeSet].filter(k => pEdgeSet.has(k));
+    const sameTotal   = kruskal.total === prim.total;
+    const sameMST     = sharedEdges.length === kruskal.edges.length && kruskal.edges.length === prim.edges.length;
+
+    // Verdict text
+    let verdictHTML = '';
+    if (sameTotal && sameMST) {
+        verdictHTML = `<span class="tag-same">✓ Cùng kết quả MST.</span> Kruskal và Prim chọn <strong>đúng các cạnh giống nhau</strong> với tổng trọng số <strong>${kruskal.total}</strong>. Trên đồ thị này, cả hai thuật toán cho kết quả tối ưu duy nhất.`;
+    } else if (sameTotal) {
+        verdictHTML = `<span class="tag-same">✓ Cùng tổng trọng số MST: ${kruskal.total}.</span> Tuy nhiên hai thuật toán <span class="tag-diff">chọn tập cạnh khác nhau</span> — điều này xảy ra khi đồ thị có nhiều cạnh cùng trọng số (MST không duy nhất).`;
+    } else {
+        verdictHTML = `<span class="tag-diff">⚠ Tổng trọng số khác nhau</span> — Kruskal: <strong>${kruskal.total}</strong>, Prim: <strong>${prim.total}</strong>. Điều này thường do đồ thị không liên thông hoặc Prim bắt đầu từ đỉnh không tối ưu.`;
+    }
+
+    body.innerHTML = `
+        <!-- HAI ĐỒ THỊ MINI Ở TRÊN CÙNG -->
+        <div class="cmp-graphs">
+            <div class="cmp-graph-card">
+                <div class="cmp-graph-title">🌲 Kruskal MST</div>
+                <canvas id="mini-canvas-kruskal" width="260" height="260" style="width:260px;height:260px"></canvas>
+            </div>
+            <div class="cmp-graph-card">
+                <div class="cmp-graph-title">🌲 Prim MST</div>
+                <canvas id="mini-canvas-prim" width="260" height="260" style="width:260px;height:260px"></canvas>
+            </div>
+        </div>
+        <div class="cmp-summary">
+            <div class="cmp-col" id="cmp-col-k">
+                <div class="cmp-col-title">${self === 'kruskal' ? '▶ Kruskal (trang này)' : 'Kruskal'}</div>
+                <div class="cmp-stat"><span class="cmp-stat-label">Tổng trọng số</span>
+                    <span class="cmp-stat-value highlight">${kruskal.total}</span></div>
+                <div class="cmp-stat"><span class="cmp-stat-label">Số cạnh MST</span>
+                    <span class="cmp-stat-value">${kruskal.edges.length}</span></div>
+                <div class="cmp-stat"><span class="cmp-stat-label">Cách tiếp cận</span>
+                    <span class="cmp-stat-value muted" style="font-size:11px;">Sort cạnh + DSU</span></div>
+            </div>
+            <div class="cmp-divider"><span class="cmp-vs">VS</span></div>
+            <div class="cmp-col" id="cmp-col-p">
+                <div class="cmp-col-title">${self === 'prim' ? '▶ Prim (trang này)' : 'Prim'}</div>
+                <div class="cmp-stat"><span class="cmp-stat-label">Tổng trọng số</span>
+                    <span class="cmp-stat-value ${sameTotal ? 'highlight' : 'muted'}">${prim.total}</span></div>
+                <div class="cmp-stat"><span class="cmp-stat-label">Số cạnh MST</span>
+                    <span class="cmp-stat-value">${prim.edges.length}</span></div>
+                <div class="cmp-stat"><span class="cmp-stat-label">Cách tiếp cận</span>
+                    <span class="cmp-stat-value muted" style="font-size:11px;">Greedy từ đỉnh</span></div>
+            </div>
+        </div>
+
+        <div>
+            <div class="cmp-section-title">Danh Sách Cạnh MST</div>
+            <div class="cmp-edge-grid">
+                <div class="cmp-edge-col" id="cmp-ecol-k">
+                    <div class="cmp-edge-col-header">Kruskal</div>
+                    ${kruskal.edges.map((e, i) => {
+                        const key = [e.fromLabel, e.toLabel].sort().join('—');
+                        const shared = pEdgeSet.has(key);
+                        return `<div class="cmp-edge-row ${shared ? 'cmp-edge-shared' : 'cmp-edge-unique'}" data-ei="${i}">
+                            <span>${e.fromLabel}</span>
+                            <span style="color:var(--text-muted)">→</span>
+                            <span>${e.toLabel}</span>
+                            <span class="cmp-edge-w">${e.weight}</span>
+                            ${shared ? '<span style="color:#4ade80;font-size:9px;margin-left:4px;">✓</span>' : ''}
+                        </div>`;
+                    }).join('')}
+                </div>
+                <div class="cmp-edge-col" id="cmp-ecol-p">
+                    <div class="cmp-edge-col-header">Prim</div>
+                    ${prim.edges.map((e, i) => {
+                        const key = [e.fromLabel, e.toLabel].sort().join('—');
+                        const shared = kEdgeSet.has(key);
+                        return `<div class="cmp-edge-row ${shared ? 'cmp-edge-shared' : 'cmp-edge-unique'}" data-ei="${i}">
+                            <span>${e.fromLabel}</span>
+                            <span style="color:var(--text-muted)">→</span>
+                            <span>${e.toLabel}</span>
+                            <span class="cmp-edge-w">${e.weight}</span>
+                            ${shared ? '<span style="color:#4ade80;font-size:9px;margin-left:4px;">✓</span>' : ''}
+                        </div>`;
+                    }).join('')}
+                </div>
+            </div>
+            <p style="font-size:10px;color:var(--text-muted);margin-top:6px;font-family:var(--font-ui);">
+                <span style="color:#4ade80;">✓</span> = cạnh xuất hiện ở cả hai MST
+            </p>
+        </div>
+
+        <div class="cmp-verdict" id="cmp-verdict">${verdictHTML}</div>
+    `;
+
+    // Hiển thị overlay
+    const overlay = document.getElementById('cmp-overlay');
+    overlay.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+
+    // Kích hoạt animation tuần tự và vẽ đồ thị mini
+    requestAnimationFrame(() => {
+        setTimeout(() => document.getElementById('cmp-col-k')?.classList.add('anim-in'), 80);
+        setTimeout(() => document.getElementById('cmp-col-p')?.classList.add('anim-in'), 180);
+        setTimeout(() => document.getElementById('cmp-ecol-k')?.classList.add('anim-in'), 280);
+        setTimeout(() => document.getElementById('cmp-ecol-p')?.classList.add('anim-in'), 360);
+
+        const rows = document.querySelectorAll('.cmp-edge-row');
+        rows.forEach((row, i) => {
+            setTimeout(() => row.classList.add('anim-in'), 380 + i * 55);
+        });
+
+        setTimeout(() => document.getElementById('cmp-verdict')?.classList.add('anim-in'), 420 + rows.length * 40);
+
+        // Vẽ đồ thị mini sau khi modal đã hiển thị hoàn chỉnh
+        setTimeout(() => {
+            if (typeof drawMiniMST === 'function') {
+                drawMiniMST('mini-canvas-kruskal', nodes, kruskal.edges);
+                drawMiniMST('mini-canvas-prim', nodes, prim.edges);
+            }
+        }, 500);
+    });
+}
+
+        function closeCompareModal() {
+            const overlay = document.getElementById('cmp-overlay');
+            overlay.classList.remove('visible');
+            document.body.style.overflow = '';
+        }
+
+        function _cmpOverlayClick(e) {
+            if (e.target === document.getElementById('cmp-overlay')) closeCompareModal();
         }
 
         function loadSampleGraph() {
             if (typeof _loadSampleKruskal === 'function') {
                 _loadSampleKruskal();
             } else {
-                log('⚠ Hàm loadSampleGraph chưa được implement trong kruskal.js');
+                log('⚠ Hàm _loadSampleKruskal chưa sẵn sàng.');
             }
         }
 
@@ -462,5 +1122,8 @@
             }
         });
     </script>
+
+    <!-- Load kruskal.js SAU các UI helpers để applyStep từ JS không bị ghi đè -->
+    <script src="../assets/js/kruskal.js"></script>
 </body>
 </html>

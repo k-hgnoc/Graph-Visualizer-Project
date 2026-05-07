@@ -9,6 +9,36 @@
     <link rel="stylesheet" href="../assets/css/workspace.css">
     <style>
         /* ── Prim-specific styles ── */
+        .cmp-graphs {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+.cmp-graph-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 8px;
+    text-align: center;
+    width: 280px;
+}
+.cmp-graph-card canvas {
+    background: #0f0f17;
+    border-radius: 8px;
+    width: 100%;
+    height: auto;
+    background: #0a0a10;
+}
+.cmp-graph-title {
+    font-family: var(--font-ui);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #4fc3f7;
+    margin-bottom: 6px;
+}
         .edge-table {
             width: 100%;
             border-collapse: collapse;
@@ -76,6 +106,74 @@
             transition: background .15s;
         }
         .btn-compare:hover { background: rgba(79,195,247,0.08); }
+
+        /* ── So sánh Modal ── */
+        .cmp-overlay {
+            position: fixed; inset: 0;
+            background: rgba(10,10,18,0.75);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .cmp-overlay.visible { opacity: 1; pointer-events: all; }
+        .cmp-panel {
+            width: 100%;
+            max-width: 860px;
+            max-height: 82vh;
+            overflow-y: auto;
+            background: var(--panel-bg, #16161f);
+            border: 1px solid rgba(255,45,107,0.2);
+            border-bottom: none;
+            border-radius: 14px 14px 0 0;
+            padding: 0 0 32px;
+            transform: translateY(100%);
+            transition: transform 0.38s cubic-bezier(0.22,1,0.36,1);
+        }
+        .cmp-overlay.visible .cmp-panel { transform: translateY(0); }
+        .cmp-header {
+            position: sticky; top: 0;
+            background: var(--panel-bg, #16161f);
+            border-bottom: 1px solid rgba(255,45,107,0.12);
+            padding: 14px 20px 12px;
+            display: flex; align-items: center; justify-content: space-between;
+            z-index: 2;
+        }
+        .cmp-title { font-family: var(--font-ui); font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #4fc3f7; }
+        .cmp-close { background: transparent; border: 1px solid rgba(255,255,255,0.12); border-radius: 5px; color: var(--text-muted, #888); font-size: 13px; padding: 3px 10px; cursor: pointer; font-family: var(--font-ui); transition: border-color 0.15s, color 0.15s; }
+        .cmp-close:hover { border-color: rgba(255,45,107,0.4); color: var(--pink, #ff2d6b); }
+        .cmp-body { padding: 20px 20px 0; display: flex; flex-direction: column; gap: 20px; }
+        .cmp-summary { display: grid; grid-template-columns: 1fr 80px 1fr; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; overflow: hidden; }
+        .cmp-col { padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; opacity: 0; transform: translateY(16px); transition: opacity 0.35s ease, transform 0.35s ease; }
+        .cmp-col.anim-in { opacity: 1; transform: translateY(0); }
+        .cmp-col-title { font-family: var(--font-ui); font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #4fc3f7; margin-bottom: 2px; }
+        .cmp-divider { display: flex; align-items: center; justify-content: center; background: rgba(79,195,247,0.05); border-left: 1px solid rgba(255,255,255,0.05); border-right: 1px solid rgba(255,255,255,0.05); }
+        .cmp-vs { font-family: var(--font-ui); font-size: 18px; font-weight: 700; color: rgba(79,195,247,0.4); }
+        .cmp-stat { display: flex; flex-direction: column; gap: 2px; }
+        .cmp-stat-label { font-size: 10px; color: var(--text-muted, #888); font-family: var(--font-ui); letter-spacing: 0.5px; text-transform: uppercase; }
+        .cmp-stat-value { font-family: var(--font-mono); font-size: 15px; font-weight: 700; color: var(--text, #eee); }
+        .cmp-stat-value.highlight { color: #4ade80; }
+        .cmp-stat-value.muted     { color: var(--text-muted, #888); }
+        .cmp-section-title { font-family: var(--font-ui); font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted, #888); margin-bottom: 8px; }
+        .cmp-edge-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .cmp-edge-col { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; overflow: hidden; opacity: 0; transform: translateY(12px); transition: opacity 0.35s ease, transform 0.35s ease; }
+        .cmp-edge-col.anim-in { opacity: 1; transform: translateY(0); }
+        .cmp-edge-col-header { padding: 8px 12px; background: rgba(79,195,247,0.06); border-bottom: 1px solid rgba(255,255,255,0.05); font-family: var(--font-ui); font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #4fc3f7; }
+        .cmp-edge-row { display: flex; align-items: center; gap: 6px; padding: 5px 12px; border-bottom: 1px solid rgba(255,255,255,0.03); font-family: var(--font-mono); font-size: 11px; color: var(--text, #eee); opacity: 0; transform: translateX(-8px); transition: opacity 0.25s ease, transform 0.25s ease; }
+        .cmp-edge-row:last-child { border-bottom: none; }
+        .cmp-edge-row.anim-in { opacity: 1; transform: translateX(0); }
+        .cmp-edge-w { margin-left: auto; color: var(--pink, #ff2d6b); font-weight: 600; }
+        .cmp-edge-shared { background: rgba(74,222,128,0.06); }
+        .cmp-edge-unique  { background: rgba(255,45,107,0.04); }
+        .cmp-verdict { border: 1px solid rgba(79,195,247,0.2); border-radius: 8px; padding: 14px 16px; font-family: var(--font-ui); font-size: 12px; line-height: 1.7; color: var(--text-muted, #aaa); background: rgba(79,195,247,0.04); opacity: 0; transform: translateY(10px); transition: opacity 0.4s ease 0.3s, transform 0.4s ease 0.3s; }
+        .cmp-verdict.anim-in { opacity: 1; transform: translateY(0); }
+        .cmp-verdict strong { color: var(--text, #eee); }
+        .tag-same { color: #4ade80; font-weight: 700; }
+        .tag-diff { color: #f59e0b; font-weight: 700; }
         .speed-row {
             display: flex;
             align-items: center;
@@ -273,10 +371,21 @@
             <div class="log-panel">
                 <div class="log-title">Log Thực Thi</div>
                 <div id="execution-log">
-                    <div class="log-entry"><span class="ts">[00:00]</span>Sẵn sàng — vẽ đồ thị vô hướng và chọn đỉnh xuất phát.</div>
+                    <div class="log-entry">
                 </div>
             </div>
 
+        </div>
+    </div>
+
+    <!-- ══ Modal So Sánh Prim vs Kruskal ══ -->
+    <div class="cmp-overlay" id="cmp-overlay" onclick="_cmpOverlayClick(event)">
+        <div class="cmp-panel" id="cmp-panel">
+            <div class="cmp-header">
+                <span class="cmp-title">⇄ So Sánh Prim vs Kruskal</span>
+                <button class="cmp-close" onclick="closeCompareModal()">✕ Đóng</button>
+            </div>
+            <div class="cmp-body" id="cmp-body"></div>
         </div>
     </div>
 
@@ -348,15 +457,167 @@
             log('↺ Đã reset — đồ thị giữ nguyên, màu highlight xóa sạch.');
         }
 
-        /* So sánh với Kruskal — mở trang Kruskal với cùng dữ liệu đồ thị */
+        /* So sánh với Kruskal — mở modal thay vì tab mới */
         function compareWithKruskal() {
-            /* Lưu đồ thị hiện tại vào sessionStorage để kruskal.html đọc */
-            sessionStorage.setItem('compareGraph', JSON.stringify({
-                nodes: graph.nodes,
-                edges: graph.edges,
-                from:  'prim'
+            const steps = window._primSteps || [];
+            const lastP = steps.length > 0 ? steps[steps.length - 1] : null;
+
+            if (!lastP || !lastP.mstEdges || lastP.mstEdges.length === 0) {
+                log('⚠ Hãy chạy thuật toán Prim trước khi so sánh.');
+                return;
+            }
+
+            const primEdges = lastP.mstEdges.map(e => ({
+                fromLabel: e.fromLabel || _getNodeLabel(e.from),
+                toLabel:   e.toLabel   || _getNodeLabel(e.to),
+                weight:    e.weight
             }));
-            window.open('../pages/kruskal.html?compare=1', '_blank');
+            const primTotal = lastP.total ?? primEdges.reduce((s, e) => s + e.weight, 0);
+
+            const kruskalResult = _runKruskalSilent();
+            if (!kruskalResult) {
+                log('⚠ Không thể chạy Kruskal để so sánh.');
+                return;
+            }
+
+            _openCompareModal({
+                prim:    { edges: primEdges, total: primTotal },
+                kruskal: kruskalResult,
+                self:    'prim'
+            });
+        }
+
+        /* Chạy Kruskal im lặng */
+        function _runKruskalSilent() {
+            if (graph.nodes.length === 0) return null;
+            const nodeIds = graph.nodes.map(n => n.id);
+
+            // DSU nhỏ gọn
+            const parent = {};
+            nodeIds.forEach(id => { parent[id] = id; });
+            function find(x) { return parent[x] === x ? x : (parent[x] = find(parent[x])); }
+            function union(a, b) {
+                const ra = find(a), rb = find(b);
+                if (ra === rb) return false;
+                parent[ra] = rb; return true;
+            }
+
+            const sorted = [...graph.edges]
+                .sort((a, b) => parseFloat(a.weight) - parseFloat(b.weight));
+
+            const mstEdges = [];
+            let total = 0;
+            for (const e of sorted) {
+                if (union(e.from, e.to)) {
+                    mstEdges.push({ fromLabel: _getNodeLabel(e.from), toLabel: _getNodeLabel(e.to), weight: parseFloat(e.weight) });
+                    total += parseFloat(e.weight);
+                }
+            }
+            return { edges: mstEdges, total };
+        }
+
+        /* ── Mở modal với hiệu ứng ── */
+        function _openCompareModal({ kruskal, prim, self }) {
+            const body = document.getElementById('cmp-body');
+
+            const kEdgeSet = new Set(kruskal.edges.map(e => [e.fromLabel,e.toLabel].sort().join('—')));
+            const pEdgeSet = new Set(prim.edges.map(e =>    [e.fromLabel,e.toLabel].sort().join('—')));
+            const sharedEdges = [...kEdgeSet].filter(k => pEdgeSet.has(k));
+            const sameTotal   = kruskal.total === prim.total;
+            const sameMST     = sharedEdges.length === kruskal.edges.length && kruskal.edges.length === prim.edges.length;
+
+            let verdictHTML = '';
+            if (sameTotal && sameMST) {
+                verdictHTML = `<span class="tag-same">✓ Cùng kết quả MST.</span> Kruskal và Prim chọn <strong>đúng các cạnh giống nhau</strong> với tổng trọng số <strong>${kruskal.total}</strong>. Trên đồ thị này, cả hai thuật toán cho kết quả tối ưu duy nhất.`;
+            } else if (sameTotal) {
+                verdictHTML = `<span class="tag-same">✓ Cùng tổng trọng số MST: ${kruskal.total}.</span> Tuy nhiên hai thuật toán <span class="tag-diff">chọn tập cạnh khác nhau</span> — điều này xảy ra khi đồ thị có nhiều cạnh cùng trọng số (MST không duy nhất).`;
+            } else {
+                verdictHTML = `<span class="tag-diff">⚠ Tổng trọng số khác nhau</span> — Kruskal: <strong>${kruskal.total}</strong>, Prim: <strong>${prim.total}</strong>. Điều này thường do đồ thị không liên thông hoặc Prim bắt đầu từ đỉnh không tối ưu.`;
+            }
+
+            body.innerHTML = `
+                <div class="cmp-summary">
+                    <div class="cmp-col" id="cmp-col-k">
+                        <div class="cmp-col-title">Kruskal</div>
+                        <div class="cmp-stat"><span class="cmp-stat-label">Tổng trọng số</span>
+                            <span class="cmp-stat-value ${sameTotal?'highlight':''}">${kruskal.total}</span></div>
+                        <div class="cmp-stat"><span class="cmp-stat-label">Số cạnh MST</span>
+                            <span class="cmp-stat-value">${kruskal.edges.length}</span></div>
+                        <div class="cmp-stat"><span class="cmp-stat-label">Cách tiếp cận</span>
+                            <span class="cmp-stat-value muted" style="font-size:11px;">Sort cạnh + DSU</span></div>
+                    </div>
+                    <div class="cmp-divider"><span class="cmp-vs">VS</span></div>
+                    <div class="cmp-col" id="cmp-col-p">
+                        <div class="cmp-col-title">▶ Prim (trang này)</div>
+                        <div class="cmp-stat"><span class="cmp-stat-label">Tổng trọng số</span>
+                            <span class="cmp-stat-value highlight">${prim.total}</span></div>
+                        <div class="cmp-stat"><span class="cmp-stat-label">Số cạnh MST</span>
+                            <span class="cmp-stat-value">${prim.edges.length}</span></div>
+                        <div class="cmp-stat"><span class="cmp-stat-label">Cách tiếp cận</span>
+                            <span class="cmp-stat-value muted" style="font-size:11px;">Greedy từ đỉnh</span></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="cmp-section-title">Danh Sách Cạnh MST</div>
+                    <div class="cmp-edge-grid">
+                        <div class="cmp-edge-col" id="cmp-ecol-k">
+                            <div class="cmp-edge-col-header">Kruskal</div>
+                            ${kruskal.edges.map((e,i) => {
+                                const key = [e.fromLabel,e.toLabel].sort().join('—');
+                                const shared = pEdgeSet.has(key);
+                                return `<div class="cmp-edge-row ${shared?'cmp-edge-shared':'cmp-edge-unique'}" data-ei="${i}">
+                                    <span>${e.fromLabel}</span><span style="color:var(--text-muted)">→</span><span>${e.toLabel}</span>
+                                    <span class="cmp-edge-w">${e.weight}</span>
+                                    ${shared?'<span style="color:#4ade80;font-size:9px;margin-left:4px;">✓</span>':''}
+                                </div>`;
+                            }).join('')}
+                        </div>
+                        <div class="cmp-edge-col" id="cmp-ecol-p">
+                            <div class="cmp-edge-col-header">Prim</div>
+                            ${prim.edges.map((e,i) => {
+                                const key = [e.fromLabel,e.toLabel].sort().join('—');
+                                const shared = kEdgeSet.has(key);
+                                return `<div class="cmp-edge-row ${shared?'cmp-edge-shared':'cmp-edge-unique'}" data-ei="${i}">
+                                    <span>${e.fromLabel}</span><span style="color:var(--text-muted)">→</span><span>${e.toLabel}</span>
+                                    <span class="cmp-edge-w">${e.weight}</span>
+                                    ${shared?'<span style="color:#4ade80;font-size:9px;margin-left:4px;">✓</span>':''}
+                                </div>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                    <p style="font-size:10px;color:var(--text-muted);margin-top:6px;font-family:var(--font-ui);">
+                        <span style="color:#4ade80;">✓</span> = cạnh xuất hiện ở cả hai MST
+                    </p>
+                </div>
+
+                <div class="cmp-verdict" id="cmp-verdict">${verdictHTML}</div>
+            `;
+
+            const overlay = document.getElementById('cmp-overlay');
+            overlay.classList.add('visible');
+            document.body.style.overflow = 'hidden';
+
+            requestAnimationFrame(() => {
+                setTimeout(() => document.getElementById('cmp-col-k')?.classList.add('anim-in'), 80);
+                setTimeout(() => document.getElementById('cmp-col-p')?.classList.add('anim-in'), 180);
+                setTimeout(() => document.getElementById('cmp-ecol-k')?.classList.add('anim-in'), 280);
+                setTimeout(() => document.getElementById('cmp-ecol-p')?.classList.add('anim-in'), 360);
+                const rows = document.querySelectorAll('.cmp-edge-row');
+                rows.forEach((row, i) => {
+                    setTimeout(() => row.classList.add('anim-in'), 380 + i * 55);
+                });
+                setTimeout(() => document.getElementById('cmp-verdict')?.classList.add('anim-in'), 420 + rows.length * 40);
+            });
+        }
+
+        function closeCompareModal() {
+            document.getElementById('cmp-overlay').classList.remove('visible');
+            document.body.style.overflow = '';
+        }
+
+        function _cmpOverlayClick(e) {
+            if (e.target === document.getElementById('cmp-overlay')) closeCompareModal();
         }
 
         /* Placeholder — prim.js override */

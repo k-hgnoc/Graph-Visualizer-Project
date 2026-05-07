@@ -74,9 +74,11 @@ function _computeDFSSteps(startId) {
     let hasCycle = false;
     let componentCount = 0;
     let stepCounter = 0;
+    let maxDepth = 0;
 
     // Hàm DFS đệ quy
-    function dfsRecursive(u, p) {
+    function dfsRecursive(u, p, depth) {
+        if (depth > maxDepth) maxDepth = depth;
         // BƯỚC 1: Thăm đỉnh mới
         visited.add(u);
         visiting.add(u);
@@ -95,7 +97,9 @@ function _computeDFSSteps(startId) {
             backEdges: [...backEdges],
             visitOrder: [...visitOrder],
             hasCycle: hasCycle,
-            componentCount: componentCount + (visitOrder.length === 0 ? 1 : 0)
+            componentCount: componentCount + (visitOrder.length === 0 ? 1 : 0),
+            maxDepth: maxDepth,
+            visitedCount: visited.size
         });
 
         visitOrder.push(u);
@@ -117,7 +121,9 @@ function _computeDFSSteps(startId) {
                     backEdges: [...backEdges],
                     visitOrder: [...visitOrder],
                     hasCycle: hasCycle,
-                    componentCount: componentCount
+                    componentCount: componentCount,
+                    maxDepth: maxDepth,
+                    visitedCount: visited.size
                 });
                 continue;
             }
@@ -140,10 +146,12 @@ function _computeDFSSteps(startId) {
                     backEdges: [...backEdges],
                     visitOrder: [...visitOrder],
                     hasCycle: hasCycle,
-                    componentCount: componentCount
+                    componentCount: componentCount,
+                    maxDepth: maxDepth,
+                    visitedCount: visited.size
                 });
 
-                dfsRecursive(v, u);
+                dfsRecursive(v, u, depth + 1);
             }
             else if (visiting.has(v)) {
                 // Back edge - phát hiện chu trình
@@ -166,7 +174,9 @@ function _computeDFSSteps(startId) {
                     backEdges: [...backEdges],
                     visitOrder: [...visitOrder],
                     hasCycle: hasCycle,
-                    componentCount: componentCount
+                    componentCount: componentCount,
+                    maxDepth: maxDepth,
+                    visitedCount: visited.size
                 });
             }
             else {
@@ -183,7 +193,9 @@ function _computeDFSSteps(startId) {
                     backEdges: [...backEdges],
                     visitOrder: [...visitOrder],
                     hasCycle: hasCycle,
-                    componentCount: componentCount
+                    componentCount: componentCount,
+                    maxDepth: maxDepth,
+                    visitedCount: visited.size
                 });
             }
         }
@@ -204,6 +216,8 @@ function _computeDFSSteps(startId) {
             visitOrder: [...visitOrder],
             hasCycle: hasCycle,
             componentCount: componentCount,
+            maxDepth: maxDepth,
+            visitedCount: visited.size,
             finished: true
         });
     }
@@ -229,7 +243,7 @@ function _computeDFSSteps(startId) {
             log(`Thanh phan lien thong #${componentCount} (bat dau tu dinh ${nodeLabels[nextStart]})`);
         }
 
-        dfsRecursive(nextStart, null);
+        dfsRecursive(nextStart, null, 0);
 
         remaining = new Set(allNodes.filter(n => !visited.has(n)));
     }
@@ -295,6 +309,16 @@ function _applyStep(step) {
         renderComponentCount(step.componentCount);
     }
 
+    // Cập nhật số đỉnh đã thăm
+    if (typeof renderVisitedCount === 'function' && step.visitedCount !== undefined) {
+        renderVisitedCount(step.visitedCount, graph.nodes.length);
+    }
+
+    // Cập nhật độ sâu lớn nhất
+    if (typeof renderMaxDepth === 'function' && step.maxDepth !== undefined) {
+        renderMaxDepth(step.maxDepth);
+    }
+
     draw();
 }
 
@@ -322,6 +346,25 @@ function _displayFinalResult() {
 
     if (lastStep.componentCount !== undefined) {
         renderComponentCount(lastStep.componentCount);
+    }
+
+    // Đỉnh bắt đầu
+    if (typeof renderStartNode === 'function') {
+        const startId = getSelectedNodeId('start-node');
+        renderStartNode(_getNodeLabel(startId));
+    }
+
+    // Số đỉnh đã thăm (lấy từ step cuối cùng)
+    if (typeof renderVisitedCount === 'function') {
+        const finalVisited = steps[steps.length - 1].visitedCount ?? lastStep.visitedCount ?? 0;
+        renderVisitedCount(finalVisited, graph.nodes.length);
+    }
+
+    // Độ sâu lớn nhất (lấy max trong toàn bộ steps)
+    if (typeof renderMaxDepth === 'function') {
+        let maxD = 0;
+        steps.forEach(s => { if (s.maxDepth !== undefined && s.maxDepth > maxD) maxD = s.maxDepth; });
+        renderMaxDepth(maxD);
     }
 
     draw();
@@ -592,26 +635,52 @@ function _loadSampleDFS() {
     graph.nodes = [];
     graph.edges = [];
 
+    // Đồ thị phức tạp hơn để thể hiện DFS rõ ràng
+    // Có nhánh sâu, chu trình và nhiều hướng đi
+
     const sampleNodes = [
-        { id: 1, x: 180, y: 200, label: 'A' },
-        { id: 2, x: 350, y: 120, label: 'B' },
-        { id: 3, x: 520, y: 200, label: 'C' },
-        { id: 4, x: 350, y: 300, label: 'D' }
+        { id: 1, x: 120, y: 220, label: 'A' },
+        { id: 2, x: 250, y: 100, label: 'B' },
+        { id: 3, x: 250, y: 340, label: 'C' },
+        { id: 4, x: 420, y: 80, label: 'D' },
+        { id: 5, x: 420, y: 200, label: 'E' },
+        { id: 6, x: 420, y: 340, label: 'F' },
+        { id: 7, x: 600, y: 120, label: 'G' },
+        { id: 8, x: 600, y: 300, label: 'H' }
     ];
 
     const sampleEdges = [
+        // Nhánh chính
         { id: 1, from: 1, to: 2, weight: 1 },
-        { id: 2, from: 2, to: 3, weight: 1 },
-        { id: 3, from: 3, to: 4, weight: 1 },
-        { id: 4, from: 4, to: 2, weight: 1 }
+        { id: 2, from: 1, to: 3, weight: 1 },
+
+        // DFS sẽ đi sâu từ B
+        { id: 3, from: 2, to: 4, weight: 1 },
+        { id: 4, from: 2, to: 5, weight: 1 },
+
+        // Đi tiếp xuống sâu
+        { id: 5, from: 4, to: 7, weight: 1 },
+
+        // Tạo chu trình
+        { id: 6, from: 7, to: 5, weight: 1 },
+        { id: 7, from: 5, to: 2, weight: 1 },
+
+        // Nhánh khác từ A
+        { id: 8, from: 3, to: 6, weight: 1 },
+
+        // DFS quay lui rồi đi tiếp
+        { id: 9, from: 6, to: 8, weight: 1 },
+
+        // Nối chéo tạo nhiều lựa chọn
+        { id: 10, from: 5, to: 6, weight: 1 }
     ];
 
     graph.nodes = sampleNodes;
     graph.edges = sampleEdges;
 
-    nodeCounter = 4;
-    edgeCounter = 4;
-    labelCounter = 4;
+    nodeCounter = sampleNodes.length;
+    edgeCounter = sampleEdges.length;
+    labelCounter = sampleNodes.length;
 
     setTimeout(() => {
         const startSelect = document.getElementById('start-node');
@@ -620,9 +689,11 @@ function _loadSampleDFS() {
     }, 100);
 
     _dfsHighlightData = null;
+
     syncDropdowns();
     draw();
-    log('Da tai do thi mau cho DFS.');
+
+    log('Đã tải đồ thị mẫu DFS nâng cao.');
 
     const hint = document.getElementById('canvas-hint');
     if (hint) hint.style.display = 'none';

@@ -665,28 +665,3 @@ function log(msg) {
     panel.appendChild(div);
     panel.scrollTop = panel.scrollHeight;
 }
-
-/* ── Expose runAlgorithm placeholder ── */
-function runAlgorithm() {
-    const startId = getSelectedNodeId('start-node');
-    const endId   = getSelectedNodeId('end-node');
-
-    if (startId === null || endId === null) {
-        log('⚠ Vui lòng chọn đỉnh bắt đầu và đỉnh đích.');
-        return;
-    }
-    if (graph.nodes.length < 2) {
-        log('⚠ Cần ít nhất 2 đỉnh.');
-        return;
-    }
-
-    const startNode = graph.nodes.find(n => n.id === startId);
-    const endNode   = graph.nodes.find(n => n.id === endId);
-    const waypoints = getWaypoints();
-
-    log(`Chạy Dijkstra: ${startNode.label} → ${waypoints.map(id => graph.nodes.find(n=>n.id===id)?.label).join(' → ')}${waypoints.length?' →':''} ${endNode.label}`);
-    log('(Thuật toán sẽ được triển khai ở bước tiếp theo)');
-
-    // Trả về dữ liệu để dijkstra.js sử dụng
-    return { graph, startId, endId, waypoints };
-}

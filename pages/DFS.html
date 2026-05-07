@@ -96,9 +96,69 @@
             border-radius: 50%;
             flex-shrink: 0;
         }
-        .legend-line {
-            width: 20px; height: 2px;
-            flex-shrink: 0;
+        .log-panel {
+            position: relative;
+        }
+        .log-resize-handle {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            cursor: ns-resize;
+            background: transparent;
+            z-index: 10;
+            transition: background 0.15s;
+        }
+        .log-resize-handle:hover,
+        .log-resize-handle.dragging {
+            background: rgba(255, 45, 107, 0.35);
+        }
+        .log-resize-handle::after {
+            content: '';
+            display: block;
+            position: absolute;
+            top: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 36px;
+            height: 2px;
+            border-radius: 2px;
+            background: rgba(255, 45, 107, 0.4);
+            transition: background 0.15s, width 0.15s;
+        }
+        .log-resize-handle:hover::after,
+        .log-resize-handle.dragging::after {
+            background: rgba(255, 45, 107, 0.85);
+            width: 56px;
+        }
+        .log-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .btn-log-toggle {
+            background: transparent;
+            border: 1px solid rgba(255, 45, 107, 0.3);
+            border-radius: 4px;
+            color: var(--pink);
+            font-family: var(--font-ui);
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            padding: 2px 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+            text-transform: uppercase;
+        }
+        .btn-log-toggle:hover { background: rgba(255, 45, 107, 0.12); }
+        .log-panel.log-expanded #execution-log {
+            max-height: 600px !important;
+        }
+        .log-panel.log-collapsed #execution-log {
+            max-height: 0 !important;
+            overflow: hidden;
+            padding: 0;
         }
     </style>
 </head>
@@ -159,8 +219,18 @@
                 <div class="section-label">Kết Quả</div>
 
                 <div class="result-block">
+                    <div class="result-label">Đỉnh Bắt Đầu</div>
+                    <p id="res-start-node" class="res-value">--</p>
+                </div>
+
+                <div class="result-block" style="margin-top:10px;">
                     <div class="result-label">Thứ Tự Duyệt</div>
                     <div id="visited-order" class="visited-list"></div>
+                </div>
+
+                <div class="result-block" style="margin-top:10px;">
+                    <div class="result-label">Số Đỉnh Đã Thăm</div>
+                    <p id="res-visited-count" class="res-value">0 / 0</p>
                 </div>
 
                 <div class="result-block" style="margin-top:10px;">
@@ -170,6 +240,11 @@
                             Chưa chạy
                         </span>
                     </div>
+                </div>
+
+                <div class="result-block" style="margin-top:10px;">
+                    <div class="result-label">Độ Sâu Lớn Nhất</div>
+                    <p id="res-max-depth" class="res-value">0</p>
                 </div>
 
                 <div class="result-block" style="margin-top:10px;">
@@ -268,10 +343,14 @@
                 </div>
             </div>
 
-            <div class="log-panel">
-                <div class="log-title">Log Thực Thi</div>
+            <div class="log-panel" id="log-panel">
+                <div class="log-resize-handle" id="log-resize-handle"></div>
+                <div class="log-title">
+                    Log Thực Thi
+                    <button class="btn-log-toggle" id="btn-log-toggle" onclick="toggleLog()">Thu Gọn</button>
+                </div>
                 <div id="execution-log">
-                    <div class="log-entry"><span class="ts">[00:00]</span>Sẵn sàng — chọn đỉnh xuất phát và bắt đầu duyệt.</div>
+                    <div class="log-entry">
                 </div>
             </div>
 
@@ -336,6 +415,24 @@
             }
         }
 
+        /* Hiển thị đỉnh bắt đầu */
+        function renderStartNode(label) {
+            const el = document.getElementById('res-start-node');
+            if (el) el.textContent = label || '--';
+        }
+
+        /* Hiển thị số đỉnh đã thăm */
+        function renderVisitedCount(visited, total) {
+            const el = document.getElementById('res-visited-count');
+            if (el) el.textContent = `${visited} / ${total}`;
+        }
+
+        /* Hiển thị độ sâu lớn nhất */
+        function renderMaxDepth(depth) {
+            const el = document.getElementById('res-max-depth');
+            if (el) el.textContent = depth;
+        }
+
         /* Reset về trạng thái ban đầu (xóa highlight, giữ đồ thị) */
         function resetVisualize() {
             window._dfsSteps  = [];
@@ -345,6 +442,9 @@
             document.getElementById('cycle-result').innerHTML  =
                 '<span class="cycle-badge" style="color:var(--text-muted);border:1px solid rgba(255,255,255,0.1);background:transparent;">Chưa chạy</span>';
             document.getElementById('component-count').textContent = '0';
+            document.getElementById('res-start-node').textContent  = '--';
+            document.getElementById('res-visited-count').textContent = '0 / 0';
+            document.getElementById('res-max-depth').textContent   = '0';
             // dfs.js sẽ expose hàm clearHighlight() để xóa màu canvas
             if (typeof clearHighlight === 'function') clearHighlight();
             log('↺ Đã reset — đồ thị giữ nguyên, màu highlight xóa sạch.');
@@ -364,6 +464,95 @@
                 log('⚠ Hàm loadSampleGraph chưa được implement trong dfs.js');
             }
         }
+
+        /* ── Toggle log panel ── */
+        function toggleLog() {
+            const panel  = document.getElementById('log-panel');
+            const btn    = document.getElementById('btn-log-toggle');
+            const logEl  = document.getElementById('execution-log');
+            const isCollapsed = panel.classList.contains('log-collapsed');
+
+            if (isCollapsed) {
+                panel.classList.remove('log-collapsed');
+                panel.classList.add('log-expanded');
+                // Khôi phục chiều cao đã lưu (hoặc mặc định)
+                const savedH = panel.dataset.savedHeight;
+                logEl.style.maxHeight = savedH ? savedH + 'px' : '180px';
+                btn.textContent = 'Thu Gọn';
+            } else {
+                // Lưu lại chiều cao hiện tại trước khi collapse
+                panel.dataset.savedHeight = logEl.offsetHeight;
+                panel.classList.remove('log-expanded');
+                panel.classList.add('log-collapsed');
+                btn.textContent = 'Mở Rộng';
+            }
+        }
+
+        /* ── Drag resize log panel ── */
+        (function _initLogResize() {
+            const handle = document.getElementById('log-resize-handle');
+            const logEl  = document.getElementById('execution-log');
+            const panel  = document.getElementById('log-panel');
+
+            let startY = 0;
+            let startH = 0;
+            let dragging = false;
+
+            handle.addEventListener('mousedown', e => {
+                // Không resize khi đang collapsed
+                if (panel.classList.contains('log-collapsed')) return;
+
+                dragging = true;
+                startY   = e.clientY;
+                startH   = logEl.offsetHeight;
+                handle.classList.add('dragging');
+                document.body.style.userSelect = 'none';
+                document.body.style.cursor     = 'ns-resize';
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', e => {
+                if (!dragging) return;
+                // Kéo lên → tăng chiều cao; kéo xuống → giảm
+                const delta  = startY - e.clientY;
+                const newH   = Math.min(600, Math.max(60, startH + delta));
+                logEl.style.maxHeight = newH + 'px';
+                // Đảm bảo không bị override bởi class collapsed/expanded
+                panel.classList.remove('log-collapsed', 'log-expanded');
+                document.getElementById('btn-log-toggle').textContent = 'Thu Gọn';
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (!dragging) return;
+                dragging = false;
+                handle.classList.remove('dragging');
+                document.body.style.userSelect = '';
+                document.body.style.cursor     = '';
+            });
+
+            // Touch support (mobile)
+            handle.addEventListener('touchstart', e => {
+                if (panel.classList.contains('log-collapsed')) return;
+                dragging = true;
+                startY   = e.touches[0].clientY;
+                startH   = logEl.offsetHeight;
+                handle.classList.add('dragging');
+            }, { passive: true });
+
+            document.addEventListener('touchmove', e => {
+                if (!dragging) return;
+                const delta = startY - e.touches[0].clientY;
+                const newH  = Math.min(600, Math.max(60, startH + delta));
+                logEl.style.maxHeight = newH + 'px';
+                panel.classList.remove('log-collapsed', 'log-expanded');
+                document.getElementById('btn-log-toggle').textContent = 'Thu Gọn';
+            }, { passive: true });
+
+            document.addEventListener('touchend', () => {
+                dragging = false;
+                handle.classList.remove('dragging');
+            });
+        })();
     </script>
 </body>
 </html>

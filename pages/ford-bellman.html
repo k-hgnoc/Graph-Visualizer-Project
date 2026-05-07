@@ -122,17 +122,6 @@
                 </div>
 
                 <div class="input-group">
-                    <label style="display:flex; align-items:center; justify-content:space-between;">
-                        <span>Đi qua đỉnh
-                            <span style="color:rgba(138,122,144,0.6); font-size:10px; letter-spacing:0.5px; margin-left:4px;">(tuỳ chọn)</span>
-                        </span>
-                        <button class="btn-add-waypoint" onclick="addWaypoint()">+ Thêm</button>
-                    </label>
-                    <div id="waypoints-list" style="display:flex; flex-direction:column; gap:5px; margin-top:4px;"></div>
-                    <div id="waypoints-empty" class="waypoint-empty">Chưa có đỉnh trung gian</div>
-                </div>
-
-                <div class="input-group">
                     <label>Tốc độ animation</label>
                     <div class="speed-row">
                         <label>Chậm</label>
@@ -298,7 +287,7 @@
             <div class="log-panel">
                 <div class="log-title">Log Thực Thi</div>
                 <div id="execution-log">
-                    <div class="log-entry"><span class="ts">[00:00]</span>Sẵn sàng — chọn công cụ và vẽ đồ thị.</div>
+                    <div class="log-entry">
                 </div>
             </div>
 
@@ -309,17 +298,18 @@
     <script src="../assets/js/supabaseClient.js"></script>
     <script src="../assets/js/auth.js"></script>
     <script src="../assets/js/workspace.js"></script>
-    <script src="../assets/js/ford-bellman.js"></script>
 
     <script>
-        /* ── Ford-Bellman UI helpers ── */
+        /* ── Ford-Bellman UI helpers ──
+           Khai báo TRƯỚC khi load ford-bellman.js để JS có thể gọi các hàm này.
+           applyStep KHÔNG khai báo ở đây — ford-bellman.js là nơi định nghĩa duy nhất.
+        */
 
         window._fbSteps   = [];
         window._stepIndex = -1;
 
         /* Render bảng khoảng cách */
         function renderRelaxTable(distMap) {
-            /* distMap: [ { label, dist, prev, updated } ] */
             const tbody = document.getElementById('relax-table-body');
             if (!distMap || distMap.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="3" style="color:var(--text-muted); font-family:var(--font-ui);">Chưa có dữ liệu</td></tr>';
@@ -329,7 +319,7 @@
                 const distCls = r.updated ? 'dist-updated' : r.dist === Infinity ? 'dist-inf' : 'dist-val';
                 const distTxt = r.dist === Infinity ? '∞' : r.dist;
                 return `<tr>
-                    <td>${r.label}</td>
+                    <td style="font-weight:bold; color:#c084fc;">${r.label}</td>
                     <td class="${distCls}">${distTxt}</td>
                     <td style="color:var(--text-muted);">${r.prev ?? '—'}</td>
                 </tr>`;
@@ -358,7 +348,7 @@
         function stepNext() {
             if (window._stepIndex < window._fbSteps.length - 1) {
                 window._stepIndex++;
-                applyStep(window._fbSteps[window._stepIndex]);
+                if (typeof applyStep === 'function') applyStep(window._fbSteps[window._stepIndex]);
                 updateStepButtons();
             }
         }
@@ -366,7 +356,7 @@
         function stepPrev() {
             if (window._stepIndex > 0) {
                 window._stepIndex--;
-                applyStep(window._fbSteps[window._stepIndex]);
+                if (typeof applyStep === 'function') applyStep(window._fbSteps[window._stepIndex]);
                 updateStepButtons();
             }
         }
@@ -387,20 +377,16 @@
             log('↺ Đã reset — đồ thị giữ nguyên, màu highlight xóa sạch.');
         }
 
-        /* Placeholder — ford-bellman.js override */
-        function applyStep(step) {
-            /* ford-bellman.js implement: nhận snapshot
-               { distMap, currentEdge, iteration, totalIter, hasNegCycle, pathEdges }
-               rồi gọi draw() + renderRelaxTable() + renderIterCount() */
-        }
-
         function loadSampleGraph() {
             if (typeof _loadSampleFordBellman === 'function') {
                 _loadSampleFordBellman();
             } else {
-                log('⚠ Hàm loadSampleGraph chưa được implement trong ford-bellman.js');
+                log('⚠ Hàm _loadSampleFordBellman chưa sẵn sàng.');
             }
         }
     </script>
+
+    <!-- Load ford-bellman.js SAU các UI helpers để applyStep từ JS không bị ghi đè -->
+    <script src="../assets/js/ford-bellman.js"></script>
 </body>
 </html>
